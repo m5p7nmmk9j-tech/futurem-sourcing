@@ -1,5 +1,6 @@
 using Futurem.Sourcing.Api.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Futurem.Sourcing.Api.Data;
 
@@ -23,10 +24,47 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Product>().ToTable("products");
         modelBuilder.Entity<ProductCategory>().ToTable("product_categories");
 
+        ApplySnakeCaseColumnNames(modelBuilder);
+
         modelBuilder.Entity<Customer>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<Supplier>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<Market>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<Product>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<ProductCategory>().HasQueryFilter(x => !x.IsDeleted);
+    }
+
+    private static void ApplySnakeCaseColumnNames(ModelBuilder modelBuilder)
+    {
+        foreach (var entity in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entity.GetProperties())
+            {
+                property.SetColumnName(ToSnakeCase(property.Name));
+            }
+        }
+    }
+
+    private static string ToSnakeCase(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return value;
+
+        var chars = new List<char>(value.Length + 8);
+        for (var i = 0; i < value.Length; i++)
+        {
+            var c = value[i];
+            if (char.IsUpper(c))
+            {
+                if (i > 0 && (char.IsLower(value[i - 1]) || char.IsDigit(value[i - 1])))
+                {
+                    chars.Add('_');
+                }
+                chars.Add(char.ToLowerInvariant(c));
+            }
+            else
+            {
+                chars.Add(c);
+            }
+        }
+        return new string(chars.ToArray());
     }
 }
