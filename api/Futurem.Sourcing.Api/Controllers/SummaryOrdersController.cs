@@ -13,6 +13,8 @@ public class SummaryOrdersController : ControllerBase
     private readonly AppDbContext _db;
     public SummaryOrdersController(AppDbContext db) { _db = db; }
 
+    public record GenerateFromPoRequest(List<long> PurchaseOrderIds, long? CustomerId, string? Currency);
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<SummaryOrder>>> List([FromQuery] long? customerId)
     {
@@ -39,6 +41,45 @@ public class SummaryOrdersController : ControllerBase
         _db.SummaryOrders.Add(input);
         await _db.SaveChangesAsync();
         return input;
+    }
+
+    [HttpPost("generate-from-pos")]
+    public async Task<ActionResult<SummaryOrder>> GenerateFromPurchaseOrders(GenerateFromPoRequest request)
+    {
+        if (request.PurchaseOrderIds == null || request.PurchaseOrderIds.Count == 0) return BadRequest("PurchaseOrderIds required");
+        var poIds = request.PurchaseOrderIds.Distinct().ToList();
+        var pos = await _db.PurchaseOrders.Where(x => poIds.Contains(x.Id)).ToListAsync();
+        if (pos.Count == 0) return NotFound();
+
+        var customerId = request.CustomerId ?? pos.FirstOrDefault(x => x.CustomerId.HasValue)?.CustomerId;
+        var so = new SummaryOrder
+        {
+            No = NumberService.NewNo("SO"),
+            BuyingTripId = pos.FirstOrDefault()?.BuyingTripId,
+            CustomerId = customerId,
+            OrderDate = DateTime.Today,
+            Currency = string.IsNullOrWhiteSpace(request.Currency) ? "USD" : request.Currency!,
+            Status = "draft",
+            Remark = $"由 PO 汇总生成: {string.Join(", ", pos.Select(x => x.No))}",
+            CreatedAt = DateTime.Now
+        };
+        _db.SummaryOrders.Add(so);
+        foreach (var po in pos)
+        {
+            po.Status = "summarized";
+            po.UpdatedAt = DateTime.Now;
+        }
+        await _db.SaveChangesAsync();
+
+        foreach (var po in pos) await DocumentLineCopyService.CopyAsync(_db, "PO", po.Id, "SO", so.Id);
+        await _db.SaveChangesAsync();
+
+        var lines = await _db.DocumentLines.Where(x => x.DocumentType == "SO" && x.DocumentId == so.Id).ToListAsync();
+        so.GoodsAmount = lines.Sum(x => x.Amount);
+        so.ReceivableAmount = so.GoodsAmount + so.CommissionFee + so.WarehouseFee + so.LoadingFee + so.LogisticsFee + so.OtherFee;
+        so.UpdatedAt = DateTime.Now;
+        await _db.SaveChangesAsync();
+        return so;
     }
 
     [HttpPost("{id:long}/copy")]
