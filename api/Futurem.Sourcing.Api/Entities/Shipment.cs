@@ -1,0 +1,17 @@
+namespace Futurem.Sourcing.Api.Entities;
+
+public class Shipment : BaseEntity
+{
+    public string No { get; set; } = string.Empty;
+    public long? ContainerLoadId { get; set; }
+    public long? SummaryOrderId { get; set; }
+    public string ShipmentMode { get; set; } = "SEA";
+    public string? Carrier { get; set; }
+    public string? VesselVoyage { get; set; }
+    public string? BillOfLadingNo { get; set; }
+    public string? DeparturePort { get; set; }
+    public string? DestinationPort { get; set; }
+    public DateTime? Etd { get; set; }
+    public DateTime? Eta { get; set; }
+    public string Status { get; set; } = "draft";
+}
