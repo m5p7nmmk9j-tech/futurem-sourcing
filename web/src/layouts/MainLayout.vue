@@ -14,6 +14,7 @@
         <el-menu-item index="/so-orders">SO</el-menu-item>
         <el-menu-item index="/receiving-orders">Receiving</el-menu-item>
         <el-menu-item index="/qc-orders">QC</el-menu-item>
+        <el-menu-item index="/container-loads">Container</el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>
