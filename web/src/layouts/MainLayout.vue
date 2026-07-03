@@ -11,6 +11,7 @@
         <el-menu-item index="/rfqs">RFQ 客户询价</el-menu-item>
         <el-menu-item index="/customer-orders">CO 客户订单</el-menu-item>
         <el-menu-item index="/purchase-orders">PO 采购订单</el-menu-item>
+        <el-menu-item index="/so-orders">SO 汇总单</el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>
@@ -18,13 +19,10 @@
         <div class="search">全局搜索：客户 / 供应商 / SKU / RFQ / CO / PO / SO</div>
         <div>V0.1 Alpha</div>
       </el-header>
-      <el-main>
-        <router-view />
-      </el-main>
+      <el-main><router-view /></el-main>
     </el-container>
   </el-container>
 </template>
-
 <style scoped>
 .layout { height: 100vh; }
 .aside { background: #111827; color: #fff; }
