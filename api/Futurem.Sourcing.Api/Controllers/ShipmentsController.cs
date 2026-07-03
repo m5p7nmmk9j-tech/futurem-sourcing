@@ -42,6 +42,33 @@ public class ShipmentsController : ControllerBase
         return input;
     }
 
+    [HttpPost("{id:long}/copy")]
+    public async Task<ActionResult<Shipment>> Copy(long id)
+    {
+        var source = await _db.Shipments.FindAsync(id);
+        if (source == null) return NotFound();
+        var copy = new Shipment
+        {
+            No = NumberService.NewNo("SHP"),
+            ContainerLoadId = source.ContainerLoadId,
+            SummaryOrderId = source.SummaryOrderId,
+            ShipmentMode = source.ShipmentMode,
+            Carrier = source.Carrier,
+            DeparturePort = source.DeparturePort,
+            DestinationPort = source.DestinationPort,
+            Etd = DateTime.Today,
+            Eta = source.Eta,
+            Status = "draft",
+            Remark = $"复制自 {source.No}",
+            CreatedAt = DateTime.Now
+        };
+        _db.Shipments.Add(copy);
+        await _db.SaveChangesAsync();
+        await DocumentLineCopyService.CopyAsync(_db, "SHP", source.Id, "SHP", copy.Id);
+        await _db.SaveChangesAsync();
+        return copy;
+    }
+
     [HttpPut("{id:long}")]
     public async Task<ActionResult<Shipment>> Update(long id, Shipment input)
     {
