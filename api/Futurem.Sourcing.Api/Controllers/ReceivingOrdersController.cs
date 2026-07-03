@@ -40,6 +40,28 @@ public class ReceivingOrdersController : ControllerBase
         return input;
     }
 
+    [HttpPost("{id:long}/copy")]
+    public async Task<ActionResult<ReceivingOrder>> Copy(long id)
+    {
+        var source = await _db.ReceivingOrders.FindAsync(id);
+        if (source == null) return NotFound();
+        var copy = new ReceivingOrder
+        {
+            No = NumberService.NewNo("RCV"),
+            PurchaseOrderId = source.PurchaseOrderId,
+            ReceiveDate = DateTime.Today,
+            WarehouseLocation = source.WarehouseLocation,
+            Status = "draft",
+            Remark = $"复制自 {source.No}",
+            CreatedAt = DateTime.Now
+        };
+        _db.ReceivingOrders.Add(copy);
+        await _db.SaveChangesAsync();
+        await DocumentLineCopyService.CopyAsync(_db, "RCV", source.Id, "RCV", copy.Id);
+        await _db.SaveChangesAsync();
+        return copy;
+    }
+
     [HttpPut("{id:long}")]
     public async Task<ActionResult<ReceivingOrder>> Update(long id, ReceivingOrder input)
     {
