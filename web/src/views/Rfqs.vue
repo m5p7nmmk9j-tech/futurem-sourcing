@@ -19,18 +19,21 @@
         <el-table-column prop="status" label="状态" width="110" />
         <el-table-column prop="requestDate" label="询价日期" width="150" />
         <el-table-column prop="remark" label="备注" min-width="220" />
-        <el-table-column label="操作" width="240" fixed="right">
+        <el-table-column label="操作" width="300" fixed="right">
           <template #default="scope">
+            <el-button size="small" type="success" @click="selectRow(scope.row)">明细</el-button>
             <el-button size="small" @click="openEdit(scope.row)">编辑</el-button>
             <el-button size="small" @click="copy(scope.row.id)">复制</el-button>
             <el-button size="small" type="danger" @click="remove(scope.row.id)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
+
+      <DocumentLinesEditor v-if="selectedId" document-type="RFQ" :document-id="selectedId" />
     </div>
 
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑 RFQ' : '新增 RFQ'" width="560px">
-      <el-alert title="RFQ 用公司抬头发给供应商询价，不显示销售价格。" type="info" show-icon style="margin-bottom: 12px" />
+      <el-alert title="RFQ 明细用于记录客户询价商品、数量、箱规、CBM 和重量。" type="info" show-icon style="margin-bottom: 12px" />
       <el-form label-width="100px">
         <el-form-item label="客户">
           <el-select v-model="form.customerId" filterable placeholder="选择客户" style="width: 100%">
@@ -53,45 +56,24 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '../api/http'
+import DocumentLinesEditor from '../components/DocumentLinesEditor.vue'
 
 const rows = ref<any[]>([])
 const customers = ref<any[]>([])
 const customerId = ref<number | null>(null)
 const dialogVisible = ref(false)
+const selectedId = ref<number | null>(null)
 const form = reactive<any>({ id: 0, customerId: null, requestDate: '', status: 'draft', remark: '' })
 
-async function loadCustomers() {
-  const res = await http.get('/customers')
-  customers.value = res.data
-}
-async function load() {
-  const params: any = {}
-  if (customerId.value) params.customerId = customerId.value
-  const res = await http.get('/rfqs', { params })
-  rows.value = res.data
-}
+async function loadCustomers() { const res = await http.get('/customers'); customers.value = res.data }
+async function load() { const params: any = {}; if (customerId.value) params.customerId = customerId.value; const res = await http.get('/rfqs', { params }); rows.value = res.data; if (!selectedId.value && rows.value.length) selectedId.value = rows.value[0].id }
 function reset() { Object.assign(form, { id: 0, customerId: null, requestDate: '', status: 'draft', remark: '' }) }
 function openCreate() { reset(); dialogVisible.value = true }
 function openEdit(row: any) { Object.assign(form, row); dialogVisible.value = true }
-async function save() {
-  if (!form.customerId) return ElMessage.warning('请选择客户')
-  if (form.id) await http.put(`/rfqs/${form.id}`, form)
-  else await http.post('/rfqs', form)
-  dialogVisible.value = false
-  ElMessage.success('保存成功')
-  await load()
-}
-async function copy(id: number) {
-  await http.post(`/rfqs/${id}/copy`)
-  ElMessage.success('复制成功')
-  await load()
-}
-async function remove(id: number) {
-  await ElMessageBox.confirm('确认删除该 RFQ？', '提示')
-  await http.delete(`/rfqs/${id}`)
-  ElMessage.success('已删除')
-  await load()
-}
+function selectRow(row: any) { selectedId.value = row.id }
+async function save() { if (!form.customerId) return ElMessage.warning('请选择客户'); const res = form.id ? await http.put(`/rfqs/${form.id}`, form) : await http.post('/rfqs', form); dialogVisible.value = false; ElMessage.success('保存成功'); await load(); selectedId.value = res.data?.id || form.id || selectedId.value }
+async function copy(id: number) { await http.post(`/rfqs/${id}/copy`); ElMessage.success('复制成功'); await load() }
+async function remove(id: number) { await ElMessageBox.confirm('确认删除该 RFQ？', '提示'); await http.delete(`/rfqs/${id}`); if (selectedId.value === id) selectedId.value = null; ElMessage.success('已删除'); await load() }
 
 onMounted(async () => { await loadCustomers(); await load() })
 </script>
