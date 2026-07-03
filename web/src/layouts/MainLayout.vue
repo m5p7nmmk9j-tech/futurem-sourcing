@@ -17,6 +17,7 @@
         <el-menu-item index="/container-loads">Container</el-menu-item>
         <el-menu-item index="/shipments">Shipment</el-menu-item>
         <el-menu-item index="/finance-records">Finance</el-menu-item>
+        <el-menu-item index="/bank-accounts">Accounts</el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>
