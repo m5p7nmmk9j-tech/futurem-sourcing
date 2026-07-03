@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductCategory> ProductCategories => Set<ProductCategory>();
     public DbSet<Rfq> Rfqs => Set<Rfq>();
+    public DbSet<CustomerOrder> CustomerOrders => Set<CustomerOrder>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -25,6 +26,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Product>().ToTable("products");
         modelBuilder.Entity<ProductCategory>().ToTable("product_categories");
         modelBuilder.Entity<Rfq>().ToTable("rfqs");
+        modelBuilder.Entity<CustomerOrder>().ToTable("customer_orders");
 
         ApplySnakeCaseColumnNames(modelBuilder);
 
@@ -34,6 +36,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Product>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<ProductCategory>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<Rfq>().HasQueryFilter(x => !x.IsDeleted);
+        modelBuilder.Entity<CustomerOrder>().HasQueryFilter(x => !x.IsDeleted);
     }
 
     private static void ApplySnakeCaseColumnNames(ModelBuilder modelBuilder)
