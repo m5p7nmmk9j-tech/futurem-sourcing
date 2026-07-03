@@ -40,6 +40,31 @@ public class ContainerLoadsController : ControllerBase
         return input;
     }
 
+    [HttpPost("{id:long}/copy")]
+    public async Task<ActionResult<ContainerLoad>> Copy(long id)
+    {
+        var source = await _db.ContainerLoads.FindAsync(id);
+        if (source == null) return NotFound();
+        var copy = new ContainerLoad
+        {
+            No = NumberService.NewNo("CL"),
+            SummaryOrderId = source.SummaryOrderId,
+            ContainerType = source.ContainerType,
+            LoadDate = DateTime.Today,
+            Status = "draft",
+            TotalCbm = source.TotalCbm,
+            TotalGwKg = source.TotalGwKg,
+            TotalCartons = source.TotalCartons,
+            Remark = $"复制自 {source.No}",
+            CreatedAt = DateTime.Now
+        };
+        _db.ContainerLoads.Add(copy);
+        await _db.SaveChangesAsync();
+        await DocumentLineCopyService.CopyAsync(_db, "CL", source.Id, "CL", copy.Id);
+        await _db.SaveChangesAsync();
+        return copy;
+    }
+
     [HttpPut("{id:long}")]
     public async Task<ActionResult<ContainerLoad>> Update(long id, ContainerLoad input)
     {
