@@ -14,6 +14,7 @@ import QcOrders from './views/QcOrders.vue'
 import ContainerLoads from './views/ContainerLoads.vue'
 import Shipments from './views/Shipments.vue'
 import FinanceRecords from './views/FinanceRecords.vue'
+import BankAccounts from './views/BankAccounts.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -35,7 +36,8 @@ const router = createRouter({
         { path: 'qc-orders', component: QcOrders },
         { path: 'container-loads', component: ContainerLoads },
         { path: 'shipments', component: Shipments },
-        { path: 'finance-records', component: FinanceRecords }
+        { path: 'finance-records', component: FinanceRecords },
+        { path: 'bank-accounts', component: BankAccounts }
       ]
     }
   ]
