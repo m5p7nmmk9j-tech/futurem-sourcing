@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<ReceivingOrder> ReceivingOrders => Set<ReceivingOrder>();
     public DbSet<QcOrder> QcOrders => Set<QcOrder>();
     public DbSet<ContainerLoad> ContainerLoads => Set<ContainerLoad>();
+    public DbSet<Shipment> Shipments => Set<Shipment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,6 +37,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<ReceivingOrder>().ToTable("receiving_orders");
         modelBuilder.Entity<QcOrder>().ToTable("qc_orders");
         modelBuilder.Entity<ContainerLoad>().ToTable("container_loads");
+        modelBuilder.Entity<Shipment>().ToTable("shipments");
         ApplySnakeCaseColumnNames(modelBuilder);
         modelBuilder.Entity<Customer>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<Supplier>().HasQueryFilter(x => !x.IsDeleted);
@@ -49,6 +51,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<ReceivingOrder>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<QcOrder>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<ContainerLoad>().HasQueryFilter(x => !x.IsDeleted);
+        modelBuilder.Entity<Shipment>().HasQueryFilter(x => !x.IsDeleted);
     }
 
     private static void ApplySnakeCaseColumnNames(ModelBuilder modelBuilder)
