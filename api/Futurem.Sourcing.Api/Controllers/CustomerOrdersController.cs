@@ -17,6 +17,8 @@ public class CustomerOrdersController : ControllerBase
         _db = db;
     }
 
+    public record GeneratePoRequest(long SupplierId, DateTime? ExpectedDeliveryDate, string? Currency);
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CustomerOrder>>> List([FromQuery] long? customerId)
     {
@@ -67,6 +69,37 @@ public class CustomerOrdersController : ControllerBase
         await DocumentLineCopyService.CopyAsync(_db, "CO", source.Id, "CO", copy.Id);
         await _db.SaveChangesAsync();
         return copy;
+    }
+
+    [HttpPost("{id:long}/generate-po")]
+    public async Task<ActionResult<PurchaseOrder>> GeneratePo(long id, GeneratePoRequest request)
+    {
+        var source = await _db.CustomerOrders.FindAsync(id);
+        if (source == null) return NotFound();
+        if (request.SupplierId <= 0) return BadRequest("SupplierId required");
+
+        var po = new PurchaseOrder
+        {
+            No = NumberService.NewNo("PO"),
+            BuyingTripId = source.BuyingTripId,
+            CustomerOrderId = source.Id,
+            SupplierId = request.SupplierId,
+            CustomerId = source.CustomerId,
+            OrderDate = DateTime.Today,
+            ExpectedDeliveryDate = request.ExpectedDeliveryDate,
+            Currency = string.IsNullOrWhiteSpace(request.Currency) ? "CNY" : request.Currency!,
+            Status = "draft",
+            PayStatus = "unpaid",
+            Remark = $"由 CO {source.No} 生成",
+            CreatedAt = DateTime.Now
+        };
+        _db.PurchaseOrders.Add(po);
+        source.Status = "converted";
+        source.UpdatedAt = DateTime.Now;
+        await _db.SaveChangesAsync();
+        await DocumentLineCopyService.CopyAsync(_db, "CO", source.Id, "PO", po.Id);
+        await _db.SaveChangesAsync();
+        return po;
     }
 
     [HttpPut("{id:long}")]
