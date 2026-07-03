@@ -42,6 +42,29 @@ public class QcOrdersController : ControllerBase
         return input;
     }
 
+    [HttpPost("{id:long}/copy")]
+    public async Task<ActionResult<QcOrder>> Copy(long id)
+    {
+        var source = await _db.QcOrders.FindAsync(id);
+        if (source == null) return NotFound();
+        var copy = new QcOrder
+        {
+            No = NumberService.NewNo("QC"),
+            PurchaseOrderId = source.PurchaseOrderId,
+            ReceivingOrderId = source.ReceivingOrderId,
+            QcDate = DateTime.Today,
+            Status = "draft",
+            Result = "pending",
+            Remark = $"复制自 {source.No}",
+            CreatedAt = DateTime.Now
+        };
+        _db.QcOrders.Add(copy);
+        await _db.SaveChangesAsync();
+        await DocumentLineCopyService.CopyAsync(_db, "QC", source.Id, "QC", copy.Id);
+        await _db.SaveChangesAsync();
+        return copy;
+    }
+
     [HttpPut("{id:long}")]
     public async Task<ActionResult<QcOrder>> Update(long id, QcOrder input)
     {
