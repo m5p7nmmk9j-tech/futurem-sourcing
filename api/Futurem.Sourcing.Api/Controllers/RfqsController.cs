@@ -62,6 +62,8 @@ public class RfqsController : ControllerBase
         };
         _db.Rfqs.Add(copy);
         await _db.SaveChangesAsync();
+        await DocumentLineCopyService.CopyAsync(_db, "RFQ", source.Id, "RFQ", copy.Id);
+        await _db.SaveChangesAsync();
         return copy;
     }
 
