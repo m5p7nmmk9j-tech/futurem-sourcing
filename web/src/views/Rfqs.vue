@@ -19,9 +19,10 @@
         <el-table-column prop="status" label="状态" width="110" />
         <el-table-column prop="requestDate" label="询价日期" width="150" />
         <el-table-column prop="remark" label="备注" min-width="220" />
-        <el-table-column label="操作" width="300" fixed="right">
+        <el-table-column label="操作" width="390" fixed="right">
           <template #default="scope">
             <el-button size="small" type="success" @click="selectRow(scope.row)">明细</el-button>
+            <el-button size="small" type="primary" @click="generateCo(scope.row.id)">生成CO</el-button>
             <el-button size="small" @click="openEdit(scope.row)">编辑</el-button>
             <el-button size="small" @click="copy(scope.row.id)">复制</el-button>
             <el-button size="small" type="danger" @click="remove(scope.row.id)">删除</el-button>
@@ -73,6 +74,7 @@ function openEdit(row: any) { Object.assign(form, row); dialogVisible.value = tr
 function selectRow(row: any) { selectedId.value = row.id }
 async function save() { if (!form.customerId) return ElMessage.warning('请选择客户'); const res = form.id ? await http.put(`/rfqs/${form.id}`, form) : await http.post('/rfqs', form); dialogVisible.value = false; ElMessage.success('保存成功'); await load(); selectedId.value = res.data?.id || form.id || selectedId.value }
 async function copy(id: number) { await http.post(`/rfqs/${id}/copy`); ElMessage.success('复制成功'); await load() }
+async function generateCo(id: number) { const res = await http.post(`/rfqs/${id}/generate-co`); ElMessage.success(`已生成 CO：${res.data?.no || ''}`); await load() }
 async function remove(id: number) { await ElMessageBox.confirm('确认删除该 RFQ？', '提示'); await http.delete(`/rfqs/${id}`); if (selectedId.value === id) selectedId.value = null; ElMessage.success('已删除'); await load() }
 
 onMounted(async () => { await loadCustomers(); await load() })
