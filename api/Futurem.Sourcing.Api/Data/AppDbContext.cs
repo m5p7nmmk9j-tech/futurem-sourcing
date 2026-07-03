@@ -24,6 +24,7 @@ public class AppDbContext : DbContext
     public DbSet<FinanceRecord> FinanceRecords => Set<FinanceRecord>();
     public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<DocumentLine> DocumentLines => Set<DocumentLine>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -44,6 +45,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<FinanceRecord>().ToTable("finance_records");
         modelBuilder.Entity<BankAccount>().ToTable("bank_accounts");
         modelBuilder.Entity<Payment>().ToTable("payments");
+        modelBuilder.Entity<DocumentLine>().ToTable("document_lines");
         ApplySnakeCaseColumnNames(modelBuilder);
         modelBuilder.Entity<Customer>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<Supplier>().HasQueryFilter(x => !x.IsDeleted);
@@ -61,6 +63,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<FinanceRecord>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<BankAccount>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<Payment>().HasQueryFilter(x => !x.IsDeleted);
+        modelBuilder.Entity<DocumentLine>().HasQueryFilter(x => !x.IsDeleted);
     }
 
     private static void ApplySnakeCaseColumnNames(ModelBuilder modelBuilder)
