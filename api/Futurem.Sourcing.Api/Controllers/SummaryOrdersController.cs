@@ -66,6 +66,8 @@ public class SummaryOrdersController : ControllerBase
         };
         _db.SummaryOrders.Add(copy);
         await _db.SaveChangesAsync();
+        await DocumentLineCopyService.CopyAsync(_db, "SO", source.Id, "SO", copy.Id);
+        await _db.SaveChangesAsync();
         return copy;
     }
 
