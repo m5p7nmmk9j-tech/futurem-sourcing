@@ -64,6 +64,8 @@ public class CustomerOrdersController : ControllerBase
         };
         _db.CustomerOrders.Add(copy);
         await _db.SaveChangesAsync();
+        await DocumentLineCopyService.CopyAsync(_db, "CO", source.Id, "CO", copy.Id);
+        await _db.SaveChangesAsync();
         return copy;
     }
 
