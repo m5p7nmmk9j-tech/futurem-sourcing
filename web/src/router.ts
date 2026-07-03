@@ -9,6 +9,7 @@ import Rfqs from './views/Rfqs.vue'
 import CustomerOrders from './views/CustomerOrders.vue'
 import PurchaseOrders from './views/PurchaseOrders.vue'
 import SummaryOrders from './views/SummaryOrders.vue'
+import ReceivingOrders from './views/ReceivingOrders.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -25,7 +26,8 @@ const router = createRouter({
         { path: 'rfqs', name: 'rfqs', component: Rfqs },
         { path: 'customer-orders', name: 'customer-orders', component: CustomerOrders },
         { path: 'purchase-orders', name: 'purchase-orders', component: PurchaseOrders },
-        { path: 'so-orders', name: 'so-orders', component: SummaryOrders }
+        { path: 'so-orders', name: 'so-orders', component: SummaryOrders },
+        { path: 'receiving-orders', name: 'receiving-orders', component: ReceivingOrders }
       ]
     }
   ]
