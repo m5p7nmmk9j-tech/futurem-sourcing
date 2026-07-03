@@ -13,6 +13,7 @@
         <el-menu-item index="/purchase-orders">PO</el-menu-item>
         <el-menu-item index="/so-orders">SO</el-menu-item>
         <el-menu-item index="/receiving-orders">Receiving</el-menu-item>
+        <el-menu-item index="/qc-orders">QC</el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>
@@ -26,8 +27,6 @@
 .aside { background: #111827; color: #fff; }
 .brand { height: 64px; display: flex; align-items: center; padding: 0 18px; font-size: 18px; font-weight: 800; }
 .menu { border-right: 0; background: #111827; }
-:deep(.el-menu-item) { color: #d1d5db; }
-:deep(.el-menu-item.is-active) { color: #fff; background: #2563eb; }
 .header { display: flex; align-items: center; justify-content: space-between; background: #fff; border-bottom: 1px solid #e5e7eb; }
 .search { color: #6b7280; }
 </style>
