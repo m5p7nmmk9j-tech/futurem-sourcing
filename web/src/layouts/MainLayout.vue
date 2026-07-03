@@ -10,6 +10,7 @@
         <el-menu-item index="/markets">市场管理</el-menu-item>
         <el-menu-item index="/rfqs">RFQ 客户询价</el-menu-item>
         <el-menu-item index="/customer-orders">CO 客户订单</el-menu-item>
+        <el-menu-item index="/purchase-orders">PO 采购订单</el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>
