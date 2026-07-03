@@ -9,11 +9,12 @@
         <el-menu-item index="/suppliers">供应商管理</el-menu-item>
         <el-menu-item index="/markets">市场管理</el-menu-item>
         <el-menu-item index="/rfqs">RFQ 客户询价</el-menu-item>
+        <el-menu-item index="/customer-orders">CO 客户订单</el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>
       <el-header class="header">
-        <div class="search">全局搜索：客户 / 供应商 / SKU / RFQ / PO / SO</div>
+        <div class="search">全局搜索：客户 / 供应商 / SKU / RFQ / CO / PO / SO</div>
         <div>V0.1 Alpha</div>
       </el-header>
       <el-main>
