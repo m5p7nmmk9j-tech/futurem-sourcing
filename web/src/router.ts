@@ -10,6 +10,7 @@ import CustomerOrders from './views/CustomerOrders.vue'
 import PurchaseOrders from './views/PurchaseOrders.vue'
 import SummaryOrders from './views/SummaryOrders.vue'
 import ReceivingOrders from './views/ReceivingOrders.vue'
+import QcOrders from './views/QcOrders.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -18,16 +19,17 @@ const router = createRouter({
       path: '/',
       component: MainLayout,
       children: [
-        { path: '', name: 'dashboard', component: Dashboard },
-        { path: 'customers', name: 'customers', component: Customers },
-        { path: 'suppliers', name: 'suppliers', component: Suppliers },
-        { path: 'products', name: 'products', component: Products },
-        { path: 'markets', name: 'markets', component: Markets },
-        { path: 'rfqs', name: 'rfqs', component: Rfqs },
-        { path: 'customer-orders', name: 'customer-orders', component: CustomerOrders },
-        { path: 'purchase-orders', name: 'purchase-orders', component: PurchaseOrders },
-        { path: 'so-orders', name: 'so-orders', component: SummaryOrders },
-        { path: 'receiving-orders', name: 'receiving-orders', component: ReceivingOrders }
+        { path: '', component: Dashboard },
+        { path: 'customers', component: Customers },
+        { path: 'suppliers', component: Suppliers },
+        { path: 'products', component: Products },
+        { path: 'markets', component: Markets },
+        { path: 'rfqs', component: Rfqs },
+        { path: 'customer-orders', component: CustomerOrders },
+        { path: 'purchase-orders', component: PurchaseOrders },
+        { path: 'so-orders', component: SummaryOrders },
+        { path: 'receiving-orders', component: ReceivingOrders },
+        { path: 'qc-orders', component: QcOrders }
       ]
     }
   ]
