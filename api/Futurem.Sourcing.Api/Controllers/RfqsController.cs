@@ -67,6 +67,33 @@ public class RfqsController : ControllerBase
         return copy;
     }
 
+    [HttpPost("{id:long}/generate-co")]
+    public async Task<ActionResult<CustomerOrder>> GenerateCo(long id)
+    {
+        var source = await _db.Rfqs.FindAsync(id);
+        if (source == null) return NotFound();
+
+        var co = new CustomerOrder
+        {
+            No = NumberService.NewNo("CO"),
+            BuyingTripId = source.BuyingTripId,
+            CustomerId = source.CustomerId,
+            RfqId = source.Id,
+            OrderDate = DateTime.Today,
+            Currency = "USD",
+            Status = "draft",
+            Remark = $"由 RFQ {source.No} 生成",
+            CreatedAt = DateTime.Now
+        };
+        _db.CustomerOrders.Add(co);
+        source.Status = "converted";
+        source.UpdatedAt = DateTime.Now;
+        await _db.SaveChangesAsync();
+        await DocumentLineCopyService.CopyAsync(_db, "RFQ", source.Id, "CO", co.Id);
+        await _db.SaveChangesAsync();
+        return co;
+    }
+
     [HttpPut("{id:long}")]
     public async Task<ActionResult<Rfq>> Update(long id, Rfq input)
     {
