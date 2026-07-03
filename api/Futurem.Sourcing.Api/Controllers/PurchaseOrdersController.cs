@@ -64,6 +64,8 @@ public class PurchaseOrdersController : ControllerBase
         };
         _db.PurchaseOrders.Add(copy);
         await _db.SaveChangesAsync();
+        await DocumentLineCopyService.CopyAsync(_db, "PO", source.Id, "PO", copy.Id);
+        await _db.SaveChangesAsync();
         return copy;
     }
 
