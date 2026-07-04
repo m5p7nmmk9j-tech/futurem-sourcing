@@ -45,6 +45,36 @@ public class FinanceRecordsController : ControllerBase
         };
     }
 
+    [HttpGet("profit-summary")]
+    public async Task<ActionResult<object>> ProfitSummary([FromQuery] long? customerId = null, [FromQuery] string? currency = null)
+    {
+        var query = _db.FinanceRecords.AsQueryable();
+        if (customerId.HasValue) query = query.Where(x => x.CustomerId == customerId.Value);
+        if (!string.IsNullOrWhiteSpace(currency)) query = query.Where(x => x.Currency == currency);
+        var records = await query.ToListAsync();
+
+        var soIncome = records.Where(x => x.RecordType == "receivable" && x.TargetType == "SO").Sum(x => x.Amount);
+        var poCost = records.Where(x => x.RecordType == "payable" && x.TargetType == "PO").Sum(x => x.Amount);
+        var expense = records.Where(x => x.RecordType == "expense").Sum(x => x.Amount);
+        var otherIncome = records.Where(x => x.RecordType == "income").Sum(x => x.Amount);
+        var grossProfit = soIncome - poCost;
+        var netProfit = soIncome + otherIncome - poCost - expense;
+        var profitRate = soIncome == 0 ? 0 : Math.Round(netProfit / soIncome * 100, 2);
+
+        return new
+        {
+            soIncome,
+            poCost,
+            expense,
+            otherIncome,
+            grossProfit,
+            netProfit,
+            profitRate,
+            receivableCollected = records.Where(x => x.RecordType == "receivable" && x.TargetType == "SO").Sum(x => x.PaidAmount),
+            payablePaid = records.Where(x => x.RecordType == "payable" && x.TargetType == "PO").Sum(x => x.PaidAmount)
+        };
+    }
+
     [HttpGet("aging")]
     public async Task<ActionResult<object>> Aging([FromQuery] string recordType = "receivable", [FromQuery] long? customerId = null, [FromQuery] long? supplierId = null)
     {
