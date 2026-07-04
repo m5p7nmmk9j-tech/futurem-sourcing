@@ -11,7 +11,7 @@
       <el-table :data="rows" border stripe @selection-change="selectionChange">
         <el-table-column type="selection" width="50" />
         <el-table-column prop="no" label="PO单号" width="190"/><el-table-column prop="supplierId" label="供应商ID" width="100"/><el-table-column prop="customerId" label="客户ID" width="100"/><el-table-column prop="customerOrderId" label="来源CO ID" width="110"/><el-table-column prop="orderDate" label="下单日期" width="150"/><el-table-column prop="expectedDeliveryDate" label="交货期" width="150"/><el-table-column prop="currency" label="币种" width="90"/><el-table-column prop="status" label="状态" width="110"/><el-table-column prop="payStatus" label="付款状态" width="110"/><el-table-column prop="remark" label="备注" min-width="220"/>
-        <el-table-column label="操作" width="300" fixed="right"><template #default="scope"><el-button size="small" type="success" @click="selectRow(scope.row)">明细</el-button><el-button size="small" @click="openEdit(scope.row)">编辑</el-button><el-button size="small" @click="copy(scope.row.id)">复制</el-button><el-button size="small" type="danger" @click="remove(scope.row.id)">删除</el-button></template></el-table-column>
+        <el-table-column label="操作" width="380" fixed="right"><template #default="scope"><el-button size="small" type="success" @click="selectRow(scope.row)">明细</el-button><el-button size="small" type="warning" @click="generatePayable(scope.row.id)">生成应付</el-button><el-button size="small" @click="openEdit(scope.row)">编辑</el-button><el-button size="small" @click="copy(scope.row.id)">复制</el-button><el-button size="small" type="danger" @click="remove(scope.row.id)">删除</el-button></template></el-table-column>
       </el-table>
       <DocumentLinesEditor v-if="selectedId" document-type="PO" :document-id="selectedId" />
     </div>
@@ -55,6 +55,7 @@ function openSoDialog(){if(!selectedRows.value.length)return ElMessage.warning('
 async function save(){if(!form.supplierId)return ElMessage.warning('请选择供应商'); const res=form.id?await http.put(`/purchase-orders/${form.id}`,form):await http.post('/purchase-orders',form); dialogVisible.value=false; ElMessage.success('保存成功'); await load(); selectedId.value=res.data?.id||form.id||selectedId.value}
 async function copy(id:number){await http.post(`/purchase-orders/${id}/copy`); ElMessage.success('复制成功'); await load()}
 async function generateSo(){if(!selectedRows.value.length)return; const res=await http.post('/summary-orders/generate-from-pos',{purchaseOrderIds:selectedRows.value.map(x=>x.id),customerId:soForm.customerId,currency:soForm.currency}); soDialogVisible.value=false; ElMessage.success(`已生成 SO：${res.data?.no||''}`); await load()}
+async function generatePayable(id:number){const res=await http.post(`/purchase-orders/${id}/generate-payable`); ElMessage.success(`已生成应付：${res.data?.no||''}`); await load()}
 async function remove(id:number){await ElMessageBox.confirm('确认删除该 PO？','提示'); await http.delete(`/purchase-orders/${id}`); if(selectedId.value===id)selectedId.value=null; ElMessage.success('已删除'); await load()}
 onMounted(async()=>{await loadSuppliers();await loadCustomers();await load()})
 </script>
