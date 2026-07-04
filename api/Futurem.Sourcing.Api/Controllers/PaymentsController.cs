@@ -45,6 +45,7 @@ public class PaymentsController : ControllerBase
             finance.PaidAmount += input.Amount;
             finance.Status = finance.PaidAmount <= 0 ? "pending" : finance.PaidAmount < finance.Amount ? "partial" : "done";
             finance.UpdatedAt = DateTime.Now;
+            await SyncSourceDocumentAsync(finance);
         }
 
         if (input.BankAccountId.HasValue)
@@ -68,7 +69,51 @@ public class PaymentsController : ControllerBase
         if (entity == null) return NotFound();
         entity.IsDeleted = true;
         entity.UpdatedAt = DateTime.Now;
+
+        var finance = await _db.FinanceRecords.FindAsync(entity.FinanceRecordId);
+        if (finance != null)
+        {
+            finance.PaidAmount -= entity.Amount;
+            if (finance.PaidAmount < 0) finance.PaidAmount = 0;
+            finance.Status = finance.PaidAmount <= 0 ? "pending" : finance.PaidAmount < finance.Amount ? "partial" : "done";
+            finance.UpdatedAt = DateTime.Now;
+            await SyncSourceDocumentAsync(finance);
+        }
+
+        if (entity.BankAccountId.HasValue)
+        {
+            var account = await _db.BankAccounts.FindAsync(entity.BankAccountId.Value);
+            if (account != null)
+            {
+                account.CurrentBalance -= entity.Direction == "pay" ? -entity.Amount - entity.FeeAmount : entity.Amount - entity.FeeAmount;
+                account.UpdatedAt = DateTime.Now;
+            }
+        }
+
         await _db.SaveChangesAsync();
         return Ok(new { ok = true });
+    }
+
+    private async Task SyncSourceDocumentAsync(FinanceRecord finance)
+    {
+        if (finance.TargetType == "SO")
+        {
+            var so = await _db.SummaryOrders.FindAsync(finance.TargetId);
+            if (so != null)
+            {
+                so.ReceivedAmount = finance.PaidAmount;
+                so.Status = finance.Status == "done" ? "paid" : finance.Status == "partial" ? "partial_paid" : "unpaid";
+                so.UpdatedAt = DateTime.Now;
+            }
+        }
+        else if (finance.TargetType == "PO")
+        {
+            var po = await _db.PurchaseOrders.FindAsync(finance.TargetId);
+            if (po != null)
+            {
+                po.PayStatus = finance.Status == "done" ? "paid" : finance.Status == "partial" ? "partial" : "unpaid";
+                po.UpdatedAt = DateTime.Now;
+            }
+        }
     }
 }
