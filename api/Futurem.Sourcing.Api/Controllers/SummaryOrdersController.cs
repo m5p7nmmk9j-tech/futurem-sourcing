@@ -43,6 +43,22 @@ public class SummaryOrdersController : ControllerBase
         return input;
     }
 
+    [HttpPost("{id:long}/generate-receivable")]
+    public async Task<ActionResult<FinanceRecord>> GenerateReceivable(long id)
+    {
+        var so = await _db.SummaryOrders.FindAsync(id);
+        if (so == null) return NotFound();
+        var goodsAmount = await FinanceAutoService.SumDocumentAmountAsync(_db, "SO", so.Id);
+        if (goodsAmount > 0) so.GoodsAmount = goodsAmount;
+        so.ReceivableAmount = so.GoodsAmount + so.CommissionFee + so.WarehouseFee + so.LoadingFee + so.LogisticsFee + so.OtherFee;
+        var finance = await FinanceAutoService.EnsureReceivableAsync(_db, "SO", so.Id, so.CustomerId, so.Currency, so.ReceivableAmount, $"由 SO {so.No} 自动生成应收");
+        so.ReceivedAmount = finance.PaidAmount;
+        so.Status = finance.Status == "done" ? "paid" : finance.Status == "partial" ? "partial_paid" : so.Status;
+        so.UpdatedAt = DateTime.Now;
+        await _db.SaveChangesAsync();
+        return finance;
+    }
+
     [HttpPost("generate-from-pos")]
     public async Task<ActionResult<SummaryOrder>> GenerateFromPurchaseOrders(GenerateFromPoRequest request)
     {
