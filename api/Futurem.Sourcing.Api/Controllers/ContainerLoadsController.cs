@@ -30,6 +30,40 @@ public class ContainerLoadsController : ControllerBase
         return entity == null ? NotFound() : entity;
     }
 
+    [HttpGet("{id:long}/utilization")]
+    public async Task<ActionResult<object>> Utilization(long id)
+    {
+        var cl = await _db.ContainerLoads.FindAsync(id);
+        if (cl == null) return NotFound();
+        var lines = await _db.DocumentLines.Where(x => x.DocumentType == "CL" && x.DocumentId == cl.Id).ToListAsync();
+        var cartons = lines.Sum(x => x.Cartons);
+        var cbm = lines.Sum(x => x.TotalCbm);
+        var gw = lines.Sum(x => x.TotalGwKg);
+        var cap = GetCapacity(cl.ContainerType);
+        var cbmRate = cap.Cbm <= 0 ? 0 : Math.Round(cbm / cap.Cbm * 100, 2);
+        var weightRate = cap.Kg <= 0 ? 0 : Math.Round(gw / cap.Kg * 100, 2);
+        var overCbm = cbm > cap.Cbm;
+        var overWeight = gw > cap.Kg;
+        var level = overCbm || overWeight ? "danger" : cbmRate >= 95 || weightRate >= 95 ? "warning" : "ok";
+        return new
+        {
+            containerType = cl.ContainerType,
+            capacityCbm = cap.Cbm,
+            capacityKg = cap.Kg,
+            cartons,
+            cbm,
+            gw,
+            remainingCbm = cap.Cbm - cbm,
+            remainingKg = cap.Kg - gw,
+            cbmRate,
+            weightRate,
+            overCbm,
+            overWeight,
+            level,
+            message = level == "danger" ? "已超柜，请拆分或换更大柜型" : level == "warning" ? "接近满柜，请谨慎继续添加货物" : "容量正常"
+        };
+    }
+
     [HttpPost]
     public async Task<ActionResult<ContainerLoad>> Create(ContainerLoad input)
     {
@@ -126,5 +160,17 @@ public class ContainerLoadsController : ControllerBase
         entity.UpdatedAt = DateTime.Now;
         await _db.SaveChangesAsync();
         return Ok(new { ok = true });
+    }
+
+    private static (decimal Cbm, decimal Kg) GetCapacity(string? containerType)
+    {
+        return (containerType ?? "40HQ").ToUpperInvariant() switch
+        {
+            "20GP" => (28m, 21600m),
+            "40GP" => (58m, 26500m),
+            "40HQ" => (68m, 26500m),
+            "45HQ" => (78m, 28000m),
+            _ => (68m, 26500m)
+        };
     }
 }
