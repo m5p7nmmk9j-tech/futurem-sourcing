@@ -13,6 +13,8 @@ public class ShipmentsController : ControllerBase
     private readonly AppDbContext _db;
     public ShipmentsController(AppDbContext db) { _db = db; }
 
+    public record GenerateFromContainerRequest(long ContainerLoadId, string? ShipmentMode, string? Carrier, string? DeparturePort, string? DestinationPort, DateTime? Etd, DateTime? Eta);
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Shipment>>> List([FromQuery] long? containerLoadId, [FromQuery] long? summaryOrderId)
     {
@@ -40,6 +42,37 @@ public class ShipmentsController : ControllerBase
         _db.Shipments.Add(input);
         await _db.SaveChangesAsync();
         return input;
+    }
+
+    [HttpPost("generate-from-container")]
+    public async Task<ActionResult<Shipment>> GenerateFromContainer(GenerateFromContainerRequest request)
+    {
+        if (request.ContainerLoadId <= 0) return BadRequest("ContainerLoadId required");
+        var cl = await _db.ContainerLoads.FindAsync(request.ContainerLoadId);
+        if (cl == null) return NotFound();
+
+        var shipment = new Shipment
+        {
+            No = NumberService.NewNo("SHP"),
+            ContainerLoadId = cl.Id,
+            SummaryOrderId = cl.SummaryOrderId,
+            ShipmentMode = string.IsNullOrWhiteSpace(request.ShipmentMode) ? "SEA" : request.ShipmentMode!,
+            Carrier = request.Carrier,
+            DeparturePort = request.DeparturePort,
+            DestinationPort = request.DestinationPort,
+            Etd = request.Etd ?? DateTime.Today,
+            Eta = request.Eta,
+            Status = "draft",
+            Remark = $"由装柜单 {cl.No} 生成",
+            CreatedAt = DateTime.Now
+        };
+        _db.Shipments.Add(shipment);
+        cl.Status = "shipment_created";
+        cl.UpdatedAt = DateTime.Now;
+        await _db.SaveChangesAsync();
+        await DocumentLineCopyService.CopyAsync(_db, "CL", cl.Id, "SHP", shipment.Id);
+        await _db.SaveChangesAsync();
+        return shipment;
     }
 
     [HttpPost("{id:long}/copy")]
