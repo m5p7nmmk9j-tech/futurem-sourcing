@@ -42,6 +42,19 @@ public class PurchaseOrdersController : ControllerBase
         return input;
     }
 
+    [HttpPost("{id:long}/generate-payable")]
+    public async Task<ActionResult<FinanceRecord>> GeneratePayable(long id)
+    {
+        var po = await _db.PurchaseOrders.FindAsync(id);
+        if (po == null) return NotFound();
+        var amount = await FinanceAutoService.SumDocumentAmountAsync(_db, "PO", po.Id);
+        var finance = await FinanceAutoService.EnsurePayableAsync(_db, "PO", po.Id, po.SupplierId, po.CustomerId, po.Currency, amount, $"由 PO {po.No} 自动生成应付");
+        po.PayStatus = finance.Status == "done" ? "paid" : finance.Status == "partial" ? "partial" : "unpaid";
+        po.UpdatedAt = DateTime.Now;
+        await _db.SaveChangesAsync();
+        return finance;
+    }
+
     [HttpPost("{id:long}/copy")]
     public async Task<ActionResult<PurchaseOrder>> Copy(long id)
     {
