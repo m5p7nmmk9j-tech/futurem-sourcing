@@ -30,6 +30,51 @@ public class ContainerLoadsController : ControllerBase
         return entity == null ? NotFound() : entity;
     }
 
+    [HttpGet("recommend")]
+    public async Task<ActionResult<object>> Recommend([FromQuery] long? summaryOrderId = null, [FromQuery] long? containerLoadId = null)
+    {
+        decimal cbm = 0, gw = 0, cartons = 0;
+        if (containerLoadId.HasValue)
+        {
+            var cl = await _db.ContainerLoads.FindAsync(containerLoadId.Value);
+            if (cl == null) return NotFound();
+            var lines = await _db.DocumentLines.Where(x => x.DocumentType == "CL" && x.DocumentId == cl.Id).ToListAsync();
+            cbm = lines.Sum(x => x.TotalCbm);
+            gw = lines.Sum(x => x.TotalGwKg);
+            cartons = lines.Sum(x => x.Cartons);
+        }
+        else if (summaryOrderId.HasValue)
+        {
+            var so = await _db.SummaryOrders.FindAsync(summaryOrderId.Value);
+            if (so == null) return NotFound();
+            var lines = await _db.DocumentLines.Where(x => x.DocumentType == "SO" && x.DocumentId == so.Id).ToListAsync();
+            cbm = lines.Sum(x => x.TotalCbm);
+            gw = lines.Sum(x => x.TotalGwKg);
+            cartons = lines.Sum(x => x.Cartons);
+        }
+        else return BadRequest("summaryOrderId or containerLoadId required");
+
+        var options = new[] { "20GP", "40GP", "40HQ", "45HQ" }.Select(t =>
+        {
+            var cap = GetCapacity(t);
+            var cbmRate = cap.Cbm <= 0 ? 0 : Math.Round(cbm / cap.Cbm * 100, 2);
+            var weightRate = cap.Kg <= 0 ? 0 : Math.Round(gw / cap.Kg * 100, 2);
+            var ok = cbm <= cap.Cbm && gw <= cap.Kg;
+            return new { containerType = t, capacityCbm = cap.Cbm, capacityKg = cap.Kg, cbmRate, weightRate, remainingCbm = cap.Cbm - cbm, remainingKg = cap.Kg - gw, ok };
+        }).ToList();
+        var recommended = options.FirstOrDefault(x => x.ok) ?? options.Last();
+        return new
+        {
+            cartons,
+            cbm,
+            gw,
+            recommended = recommended.containerType,
+            needSplit = !options.Any(x => x.ok),
+            message = options.Any(x => x.ok) ? $"建议使用 {recommended.containerType}" : "单柜无法装完，建议拆分多柜或重新分配装柜",
+            options
+        };
+    }
+
     [HttpGet("{id:long}/utilization")]
     public async Task<ActionResult<object>> Utilization(long id)
     {
