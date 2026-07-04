@@ -1,6 +1,33 @@
 <template>
   <div class="page">
     <div class="page-header"><div class="page-title">Finance 财务</div><el-button type="primary" @click="openCreate">新增财务记录</el-button></div>
+
+    <div class="card">
+      <el-row :gutter="12">
+        <el-col :span="4"><el-statistic title="总金额" :value="summary.totalAmount || 0" /></el-col>
+        <el-col :span="4"><el-statistic title="已收/已付" :value="summary.paidAmount || 0" /></el-col>
+        <el-col :span="4"><el-statistic title="余额" :value="summary.balanceAmount || 0" /></el-col>
+        <el-col :span="4"><el-statistic title="应收余额" :value="summary.receivableBalance || 0" /></el-col>
+        <el-col :span="4"><el-statistic title="应付余额" :value="summary.payableBalance || 0" /></el-col>
+        <el-col :span="4"><el-statistic title="待处理" :value="summary.pendingCount || 0" /></el-col>
+      </el-row>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <el-select v-model="agingType" style="width:160px" @change="loadAnalytics"><el-option label="应收账龄" value="receivable"/><el-option label="应付账龄" value="payable"/></el-select>
+        <el-button @click="loadAnalytics">刷新统计</el-button>
+      </div>
+      <el-row :gutter="12">
+        <el-col :span="4"><el-statistic title="30天内" :value="aging.current || 0" /></el-col>
+        <el-col :span="4"><el-statistic title="31-60天" :value="aging.days31To60 || 0" /></el-col>
+        <el-col :span="4"><el-statistic title="61-90天" :value="aging.days61To90 || 0" /></el-col>
+        <el-col :span="4"><el-statistic title="90天以上" :value="aging.over90 || 0" /></el-col>
+        <el-col :span="4"><el-statistic title="合计" :value="aging.total || 0" /></el-col>
+        <el-col :span="4"><el-statistic title="笔数" :value="aging.count || 0" /></el-col>
+      </el-row>
+    </div>
+
     <div class="card">
       <div class="toolbar">
         <el-select v-model="recordType" placeholder="收/付款类型" clearable style="width:160px" @change="load"><el-option label="应收" value="receivable"/><el-option label="应付" value="payable"/><el-option label="费用" value="expense"/><el-option label="收入" value="income"/></el-select>
@@ -11,6 +38,18 @@
       <el-table :data="rows" border stripe>
         <el-table-column prop="no" label="财务单号" width="190"/><el-table-column prop="recordType" label="类型" width="100"/><el-table-column prop="targetType" label="来源" width="100"/><el-table-column prop="targetId" label="来源ID" width="90"/><el-table-column prop="currency" label="币种" width="80"/><el-table-column prop="amount" label="应收/应付" width="120"/><el-table-column prop="paidAmount" label="已收/已付" width="120"/><el-table-column label="未收/未付" width="120"><template #default="scope">{{ Number(scope.row.amount || 0) - Number(scope.row.paidAmount || 0) }}</template></el-table-column><el-table-column prop="status" label="状态" width="100"/>
         <el-table-column label="操作" width="240" fixed="right"><template #default="scope"><el-button size="small" type="success" @click="openPayment(scope.row)">{{ scope.row.recordType === 'payable' || scope.row.recordType === 'expense' ? '付款' : '收款' }}</el-button><el-button size="small" @click="openEdit(scope.row)">编辑</el-button><el-button size="small" type="danger" @click="remove(scope.row.id)">删除</el-button></template></el-table-column>
+      </el-table>
+    </div>
+
+    <div class="card">
+      <div class="toolbar"><el-select v-model="balanceType" style="width:160px" @change="loadBalances"><el-option label="按客户应收" value="receivable"/><el-option label="按供应商应付" value="payable"/></el-select></div>
+      <el-table :data="balances" border stripe size="small">
+        <el-table-column prop="customerId" label="客户ID" width="120" v-if="balanceType==='receivable'" />
+        <el-table-column prop="supplierId" label="供应商ID" width="120" v-if="balanceType==='payable'" />
+        <el-table-column prop="amount" label="总金额" width="140" />
+        <el-table-column prop="paidAmount" label="已收/已付" width="140" />
+        <el-table-column prop="balanceAmount" label="余额" width="140" />
+        <el-table-column prop="count" label="笔数" width="100" />
       </el-table>
     </div>
 
@@ -43,12 +82,16 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '../api/http'
-const rows=ref<any[]>([]), customers=ref<any[]>([]), suppliers=ref<any[]>([]), accounts=ref<any[]>([])
+const rows=ref<any[]>([]), customers=ref<any[]>([]), suppliers=ref<any[]>([]), accounts=ref<any[]>([]), balances=ref<any[]>([])
+const summary=ref<any>({}), aging=ref<any>({})
 const recordType=ref<string|null>(null), customerId=ref<number|null>(null), supplierId=ref<number|null>(null), dialogVisible=ref(false), paymentDialog=ref(false)
+const agingType=ref('receivable'), balanceType=ref('receivable')
 const form=reactive<any>({id:0,recordType:'receivable',targetType:'MANUAL',targetId:0,customerId:null,supplierId:null,currency:'USD',amount:0,paidAmount:0,recordDate:'',status:'pending',remark:''})
 const payment=reactive<any>({direction:'receive',financeRecordId:0,bankAccountId:null,targetType:'',targetId:0,customerId:null,supplierId:null,paymentMethod:'bank',currency:'USD',amount:0,exchangeRate:1,feeAmount:0,paymentDate:'',attachmentUrl:'',remark:''})
 async function loadCustomers(){customers.value=(await http.get('/customers')).data} async function loadSuppliers(){suppliers.value=(await http.get('/suppliers')).data} async function loadAccounts(){accounts.value=(await http.get('/bank-accounts')).data}
-async function load(){const params:any={}; if(recordType.value)params.recordType=recordType.value; if(customerId.value)params.customerId=customerId.value; if(supplierId.value)params.supplierId=supplierId.value; rows.value=(await http.get('/finance-records',{params})).data}
+async function load(){const params:any={}; if(recordType.value)params.recordType=recordType.value; if(customerId.value)params.customerId=customerId.value; if(supplierId.value)params.supplierId=supplierId.value; rows.value=(await http.get('/finance-records',{params})).data; await loadAnalytics()}
+async function loadAnalytics(){summary.value=(await http.get('/finance-records/summary')).data; aging.value=(await http.get('/finance-records/aging',{params:{recordType:agingType.value}})).data; await loadBalances()}
+async function loadBalances(){balances.value=(await http.get('/finance-records/partner-balances',{params:{recordType:balanceType.value}})).data}
 function reset(){Object.assign(form,{id:0,recordType:'receivable',targetType:'MANUAL',targetId:0,customerId:null,supplierId:null,currency:'USD',amount:0,paidAmount:0,recordDate:'',status:'pending',remark:''})}
 function openCreate(){reset();dialogVisible.value=true} function openEdit(row:any){Object.assign(form,row);dialogVisible.value=true}
 async function save(){if(!form.recordType)return ElMessage.warning('请选择类型'); form.id?await http.put(`/finance-records/${form.id}`,form):await http.post('/finance-records',form); dialogVisible.value=false; ElMessage.success('保存成功'); await load()}
