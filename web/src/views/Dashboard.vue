@@ -1,72 +1,24 @@
 <template>
   <div class="page">
-    <div class="page-header">
-      <div class="page-title">首页 Dashboard / 业务驾驶舱</div>
-      <el-button @click="load">刷新</el-button>
-    </div>
+    <div class="page-header"><div class="page-title">首页 Dashboard / 业务驾驶舱</div><el-button @click="load">刷新</el-button></div>
 
-    <div class="card">
-      <div class="section-title">今日经营</div>
-      <el-row :gutter="16"><el-col :span="3" v-for="item in todayCards" :key="item.title"><div class="stat-card small"><div class="stat-title">{{ item.title }}</div><div class="stat-value">{{ item.value }}</div></div></el-col></el-row>
-    </div>
+    <div class="card"><div class="section-title">今日经营</div><el-row :gutter="16"><el-col :span="3" v-for="item in todayCards" :key="item.title"><div class="stat-card small"><div class="stat-title">{{ item.title }}</div><div class="stat-value">{{ item.value }}</div></div></el-col></el-row></div>
 
-    <div class="card">
-      <div class="section-title">本月经营</div>
-      <el-row :gutter="16">
-        <el-col :span="4"><div class="stat-card"><div class="stat-title">本月销售</div><div class="stat-value money">{{ summary.month?.sales || 0 }}</div></div></el-col>
-        <el-col :span="4"><div class="stat-card"><div class="stat-title">本月采购</div><div class="stat-value money">{{ summary.month?.purchase || 0 }}</div></div></el-col>
-        <el-col :span="4"><div class="stat-card"><div class="stat-title">本月收款</div><div class="stat-value money">{{ summary.month?.received || 0 }}</div></div></el-col>
-        <el-col :span="4"><div class="stat-card"><div class="stat-title">本月付款</div><div class="stat-value money">{{ summary.month?.paid || 0 }}</div></div></el-col>
-        <el-col :span="4"><div class="stat-card profit"><div class="stat-title">本月利润</div><div class="stat-value money">{{ summary.month?.profit || 0 }}</div></div></el-col>
-        <el-col :span="4"><div class="stat-card"><div class="stat-title">今日利润</div><div class="stat-value money">{{ summary.today?.profit || 0 }}</div></div></el-col>
-      </el-row>
-    </div>
+    <div class="card"><div class="section-title">本月经营</div><el-row :gutter="16"><el-col :span="4"><div class="stat-card"><div class="stat-title">本月销售</div><div class="stat-value money">{{ summary.month?.sales || 0 }}</div></div></el-col><el-col :span="4"><div class="stat-card"><div class="stat-title">本月采购</div><div class="stat-value money">{{ summary.month?.purchase || 0 }}</div></div></el-col><el-col :span="4"><div class="stat-card"><div class="stat-title">本月收款</div><div class="stat-value money">{{ summary.month?.received || 0 }}</div></div></el-col><el-col :span="4"><div class="stat-card"><div class="stat-title">本月付款</div><div class="stat-value money">{{ summary.month?.paid || 0 }}</div></div></el-col><el-col :span="4"><div class="stat-card profit"><div class="stat-title">本月利润</div><div class="stat-value money">{{ summary.month?.profit || 0 }}</div></div></el-col><el-col :span="4"><div class="stat-card"><div class="stat-title">今日利润</div><div class="stat-value money">{{ summary.today?.profit || 0 }}</div></div></el-col></el-row></div>
 
-    <div class="card">
-      <div class="section-title">基础资料</div>
-      <el-row :gutter="16"><el-col :span="8"><div class="stat-card"><div class="stat-title">客户</div><div class="stat-value">{{ summary.masterData?.customers || 0 }}</div></div></el-col><el-col :span="8"><div class="stat-card"><div class="stat-title">供应商</div><div class="stat-value">{{ summary.masterData?.suppliers || 0 }}</div></div></el-col><el-col :span="8"><div class="stat-card"><div class="stat-title">商品</div><div class="stat-value">{{ summary.masterData?.products || 0 }}</div></div></el-col></el-row>
-    </div>
+    <div class="card"><div class="section-title">业务预警中心</div><el-row :gutter="16"><el-col :span="6"><el-alert :title="`总预警：${warnings.total || 0}`" type="info" show-icon /></el-col><el-col :span="6"><el-alert :title="`严重：${warnings.danger || 0}`" type="error" show-icon /></el-col><el-col :span="6"><el-alert :title="`提醒：${warnings.warning || 0}`" type="warning" show-icon /></el-col><el-col :span="6"><el-alert title="红色优先处理，黄色跟进" type="success" show-icon /></el-col></el-row><el-table :data="warnings.items || []" border stripe size="small" style="margin-top:12px"><el-table-column prop="type" label="类型" width="100"/><el-table-column prop="level" label="级别" width="90"><template #default="scope"><el-tag :type="scope.row.level==='danger'?'danger':'warning'">{{ scope.row.level==='danger'?'严重':'提醒' }}</el-tag></template></el-table-column><el-table-column prop="no" label="单号" width="180"/><el-table-column prop="message" label="说明" min-width="260"/><el-table-column prop="date" label="日期" width="160"/><el-table-column prop="amount" label="金额" width="120"/></el-table></div>
 
-    <div class="card">
-      <div class="section-title">业务流程</div>
-      <el-row :gutter="16"><el-col :span="3" v-for="item in workflowCards" :key="item.title"><div class="stat-card small"><div class="stat-title">{{ item.title }}</div><div class="stat-value">{{ item.value }}</div></div></el-col></el-row>
-    </div>
+    <div class="card"><div class="section-title">基础资料</div><el-row :gutter="16"><el-col :span="8"><div class="stat-card"><div class="stat-title">客户</div><div class="stat-value">{{ summary.masterData?.customers || 0 }}</div></div></el-col><el-col :span="8"><div class="stat-card"><div class="stat-title">供应商</div><div class="stat-value">{{ summary.masterData?.suppliers || 0 }}</div></div></el-col><el-col :span="8"><div class="stat-card"><div class="stat-title">商品</div><div class="stat-value">{{ summary.masterData?.products || 0 }}</div></div></el-col></el-row></div>
 
-    <div class="card">
-      <div class="section-title">财务总览</div>
-      <el-row :gutter="16">
-        <el-col :span="4"><div class="stat-card"><div class="stat-title">应收</div><div class="stat-value money">{{ summary.finance?.receivableAmount || 0 }}</div></div></el-col>
-        <el-col :span="4"><div class="stat-card"><div class="stat-title">已收</div><div class="stat-value money">{{ summary.finance?.receivedAmount || 0 }}</div></div></el-col>
-        <el-col :span="4"><div class="stat-card warn"><div class="stat-title">未收</div><div class="stat-value money">{{ summary.finance?.receivableBalance || 0 }}</div></div></el-col>
-        <el-col :span="4"><div class="stat-card"><div class="stat-title">应付</div><div class="stat-value money">{{ summary.finance?.payableAmount || 0 }}</div></div></el-col>
-        <el-col :span="4"><div class="stat-card"><div class="stat-title">已付</div><div class="stat-value money">{{ summary.finance?.paidAmount || 0 }}</div></div></el-col>
-        <el-col :span="4"><div class="stat-card danger"><div class="stat-title">未付</div><div class="stat-value money">{{ summary.finance?.payableBalance || 0 }}</div></div></el-col>
-      </el-row>
-    </div>
+    <div class="card"><div class="section-title">业务流程</div><el-row :gutter="16"><el-col :span="3" v-for="item in workflowCards" :key="item.title"><div class="stat-card small"><div class="stat-title">{{ item.title }}</div><div class="stat-value">{{ item.value }}</div></div></el-col></el-row></div>
 
-    <div class="card">
-      <div class="section-title">预警中心</div>
-      <el-row :gutter="16"><el-col :span="4"><el-alert :title="`待付款 PO：${summary.alerts?.unpaidPo || 0}`" type="warning" show-icon /></el-col><el-col :span="4"><el-alert :title="`待收款 SO：${summary.alerts?.unpaidSo || 0}`" type="warning" show-icon /></el-col><el-col :span="4"><el-alert :title="`QC异常：${summary.alerts?.qcFailed || 0}`" type="error" show-icon /></el-col><el-col :span="6"><el-alert :title="`未出运装柜：${summary.alerts?.containersNotShipped || 0}`" type="info" show-icon /></el-col><el-col :span="6"><el-alert :title="`未到港出运：${summary.alerts?.shipmentsNotArrived || 0}`" type="info" show-icon /></el-col></el-row>
-    </div>
+    <div class="card"><div class="section-title">财务总览</div><el-row :gutter="16"><el-col :span="4"><div class="stat-card"><div class="stat-title">应收</div><div class="stat-value money">{{ summary.finance?.receivableAmount || 0 }}</div></div></el-col><el-col :span="4"><div class="stat-card"><div class="stat-title">已收</div><div class="stat-value money">{{ summary.finance?.receivedAmount || 0 }}</div></div></el-col><el-col :span="4"><div class="stat-card warn"><div class="stat-title">未收</div><div class="stat-value money">{{ summary.finance?.receivableBalance || 0 }}</div></div></el-col><el-col :span="4"><div class="stat-card"><div class="stat-title">应付</div><div class="stat-value money">{{ summary.finance?.payableAmount || 0 }}</div></div></el-col><el-col :span="4"><div class="stat-card"><div class="stat-title">已付</div><div class="stat-value money">{{ summary.finance?.paidAmount || 0 }}</div></div></el-col><el-col :span="4"><div class="stat-card danger"><div class="stat-title">未付</div><div class="stat-value money">{{ summary.finance?.payableBalance || 0 }}</div></div></el-col></el-row></div>
 
-    <div class="card">
-      <div class="section-title">最新业务记录</div>
-      <el-row :gutter="16">
-        <el-col :span="12"><h3>最新 PO</h3><el-table :data="recent.latestPo || []" border stripe size="small"><el-table-column prop="no" label="PO"/><el-table-column prop="supplierId" label="供应商" width="90"/><el-table-column prop="currency" label="币种" width="80"/><el-table-column prop="status" label="状态" width="100"/><el-table-column prop="payStatus" label="付款" width="100"/></el-table></el-col>
-        <el-col :span="12"><h3>最新 SO</h3><el-table :data="recent.latestSo || []" border stripe size="small"><el-table-column prop="no" label="SO"/><el-table-column prop="customerId" label="客户" width="90"/><el-table-column prop="receivableAmount" label="应收" width="110"/><el-table-column prop="receivedAmount" label="已收" width="110"/><el-table-column prop="status" label="状态" width="100"/></el-table></el-col>
-      </el-row>
-      <el-row :gutter="16" style="margin-top:16px">
-        <el-col :span="12"><h3>最新装柜</h3><el-table :data="recent.latestContainers || []" border stripe size="small"><el-table-column prop="no" label="装柜单"/><el-table-column prop="containerType" label="柜型" width="90"/><el-table-column prop="totalCbm" label="CBM" width="90"/><el-table-column prop="totalGwKg" label="KG" width="90"/><el-table-column prop="status" label="状态" width="120"/></el-table></el-col>
-        <el-col :span="12"><h3>最新出运</h3><el-table :data="recent.latestShipments || []" border stripe size="small"><el-table-column prop="no" label="出运单"/><el-table-column prop="shipmentMode" label="方式" width="90"/><el-table-column prop="carrier" label="承运人" width="100"/><el-table-column prop="eta" label="ETA" width="120"/><el-table-column prop="status" label="状态" width="120"/></el-table></el-col>
-      </el-row>
-      <el-row :gutter="16" style="margin-top:16px"><el-col :span="24"><h3>最新收付款</h3><el-table :data="recent.latestPayments || []" border stripe size="small"><el-table-column prop="no" label="单号"/><el-table-column prop="direction" label="方向" width="90"/><el-table-column prop="currency" label="币种" width="80"/><el-table-column prop="amount" label="金额" width="120"/><el-table-column prop="paymentDate" label="日期" width="140"/><el-table-column prop="paymentMethod" label="方式" width="120"/></el-table></el-col></el-row>
-    </div>
+    <div class="card"><div class="section-title">预警摘要</div><el-row :gutter="16"><el-col :span="4"><el-alert :title="`待付款 PO：${summary.alerts?.unpaidPo || 0}`" type="warning" show-icon /></el-col><el-col :span="4"><el-alert :title="`待收款 SO：${summary.alerts?.unpaidSo || 0}`" type="warning" show-icon /></el-col><el-col :span="4"><el-alert :title="`QC异常：${summary.alerts?.qcFailed || 0}`" type="error" show-icon /></el-col><el-col :span="6"><el-alert :title="`未出运装柜：${summary.alerts?.containersNotShipped || 0}`" type="info" show-icon /></el-col><el-col :span="6"><el-alert :title="`未到港出运：${summary.alerts?.shipmentsNotArrived || 0}`" type="info" show-icon /></el-col></el-row></div>
 
-    <div class="card">
-      <div class="section-title">待办事项</div>
-      <el-row :gutter="16"><el-col :span="12"><h3>待收款</h3><el-table :data="todo.pendingReceivables || []" border stripe size="small"><el-table-column prop="no" label="单号"/><el-table-column prop="currency" label="币种" width="80"/><el-table-column prop="balance" label="未收" width="120"/><el-table-column prop="status" label="状态" width="100"/></el-table></el-col><el-col :span="12"><h3>待付款</h3><el-table :data="todo.pendingPayables || []" border stripe size="small"><el-table-column prop="no" label="单号"/><el-table-column prop="currency" label="币种" width="80"/><el-table-column prop="balance" label="未付" width="120"/><el-table-column prop="status" label="状态" width="100"/></el-table></el-col></el-row>
-      <el-row :gutter="16" style="margin-top:16px"><el-col :span="12"><h3>待出运装柜</h3><el-table :data="todo.pendingContainers || []" border stripe size="small"><el-table-column prop="no" label="装柜单"/><el-table-column prop="containerType" label="柜型" width="90"/><el-table-column prop="totalCbm" label="CBM" width="90"/><el-table-column prop="status" label="状态" width="120"/></el-table></el-col><el-col :span="12"><h3>未完成出运</h3><el-table :data="todo.pendingShipments || []" border stripe size="small"><el-table-column prop="no" label="出运单"/><el-table-column prop="shipmentMode" label="方式" width="90"/><el-table-column prop="eta" label="ETA" width="120"/><el-table-column prop="status" label="状态" width="120"/></el-table></el-col></el-row>
-    </div>
+    <div class="card"><div class="section-title">最新业务记录</div><el-row :gutter="16"><el-col :span="12"><h3>最新 PO</h3><el-table :data="recent.latestPo || []" border stripe size="small"><el-table-column prop="no" label="PO"/><el-table-column prop="supplierId" label="供应商" width="90"/><el-table-column prop="currency" label="币种" width="80"/><el-table-column prop="status" label="状态" width="100"/><el-table-column prop="payStatus" label="付款" width="100"/></el-table></el-col><el-col :span="12"><h3>最新 SO</h3><el-table :data="recent.latestSo || []" border stripe size="small"><el-table-column prop="no" label="SO"/><el-table-column prop="customerId" label="客户" width="90"/><el-table-column prop="receivableAmount" label="应收" width="110"/><el-table-column prop="receivedAmount" label="已收" width="110"/><el-table-column prop="status" label="状态" width="100"/></el-table></el-col></el-row><el-row :gutter="16" style="margin-top:16px"><el-col :span="12"><h3>最新装柜</h3><el-table :data="recent.latestContainers || []" border stripe size="small"><el-table-column prop="no" label="装柜单"/><el-table-column prop="containerType" label="柜型" width="90"/><el-table-column prop="totalCbm" label="CBM" width="90"/><el-table-column prop="totalGwKg" label="KG" width="90"/><el-table-column prop="status" label="状态" width="120"/></el-table></el-col><el-col :span="12"><h3>最新出运</h3><el-table :data="recent.latestShipments || []" border stripe size="small"><el-table-column prop="no" label="出运单"/><el-table-column prop="shipmentMode" label="方式" width="90"/><el-table-column prop="carrier" label="承运人" width="100"/><el-table-column prop="eta" label="ETA" width="120"/><el-table-column prop="status" label="状态" width="120"/></el-table></el-col></el-row><el-row :gutter="16" style="margin-top:16px"><el-col :span="24"><h3>最新收付款</h3><el-table :data="recent.latestPayments || []" border stripe size="small"><el-table-column prop="no" label="单号"/><el-table-column prop="direction" label="方向" width="90"/><el-table-column prop="currency" label="币种" width="80"/><el-table-column prop="amount" label="金额" width="120"/><el-table-column prop="paymentDate" label="日期" width="140"/><el-table-column prop="paymentMethod" label="方式" width="120"/></el-table></el-col></el-row></div>
+
+    <div class="card"><div class="section-title">待办事项</div><el-row :gutter="16"><el-col :span="12"><h3>待收款</h3><el-table :data="todo.pendingReceivables || []" border stripe size="small"><el-table-column prop="no" label="单号"/><el-table-column prop="currency" label="币种" width="80"/><el-table-column prop="balance" label="未收" width="120"/><el-table-column prop="status" label="状态" width="100"/></el-table></el-col><el-col :span="12"><h3>待付款</h3><el-table :data="todo.pendingPayables || []" border stripe size="small"><el-table-column prop="no" label="单号"/><el-table-column prop="currency" label="币种" width="80"/><el-table-column prop="balance" label="未付" width="120"/><el-table-column prop="status" label="状态" width="100"/></el-table></el-col></el-row><el-row :gutter="16" style="margin-top:16px"><el-col :span="12"><h3>待出运装柜</h3><el-table :data="todo.pendingContainers || []" border stripe size="small"><el-table-column prop="no" label="装柜单"/><el-table-column prop="containerType" label="柜型" width="90"/><el-table-column prop="totalCbm" label="CBM" width="90"/><el-table-column prop="status" label="状态" width="120"/></el-table></el-col><el-col :span="12"><h3>未完成出运</h3><el-table :data="todo.pendingShipments || []" border stripe size="small"><el-table-column prop="no" label="出运单"/><el-table-column prop="shipmentMode" label="方式" width="90"/><el-table-column prop="eta" label="ETA" width="120"/><el-table-column prop="status" label="状态" width="120"/></el-table></el-col></el-row></div>
   </div>
 </template>
 
@@ -76,13 +28,10 @@ import { http } from '../api/http'
 const summary = ref<any>({})
 const todo = ref<any>({})
 const recent = ref<any>({})
-const todayCards = computed(() => [
-  { title: 'RFQ', value: summary.value.today?.rfqs || 0 }, { title: 'CO', value: summary.value.today?.customerOrders || 0 }, { title: 'PO', value: summary.value.today?.purchaseOrders || 0 }, { title: 'SO', value: summary.value.today?.summaryOrders || 0 }, { title: '收货', value: summary.value.today?.receivingOrders || 0 }, { title: 'QC', value: summary.value.today?.qcOrders || 0 }, { title: '装柜', value: summary.value.today?.containerLoads || 0 }, { title: '出运', value: summary.value.today?.shipments || 0 }
-])
-const workflowCards = computed(() => [
-  { title: 'RFQ', value: summary.value.workflow?.rfqs || 0 }, { title: 'CO', value: summary.value.workflow?.customerOrders || 0 }, { title: 'PO', value: summary.value.workflow?.purchaseOrders || 0 }, { title: 'SO', value: summary.value.workflow?.summaryOrders || 0 }, { title: '收货', value: summary.value.workflow?.receivingOrders || 0 }, { title: 'QC', value: summary.value.workflow?.qcOrders || 0 }, { title: '装柜', value: summary.value.workflow?.containerLoads || 0 }, { title: '出运', value: summary.value.workflow?.shipments || 0 }
-])
-async function load(){summary.value=(await http.get('/business-dashboard/summary')).data; todo.value=(await http.get('/business-dashboard/todo')).data; recent.value=(await http.get('/business-dashboard/recent')).data}
+const warnings = ref<any>({})
+const todayCards = computed(() => [{ title: 'RFQ', value: summary.value.today?.rfqs || 0 }, { title: 'CO', value: summary.value.today?.customerOrders || 0 }, { title: 'PO', value: summary.value.today?.purchaseOrders || 0 }, { title: 'SO', value: summary.value.today?.summaryOrders || 0 }, { title: '收货', value: summary.value.today?.receivingOrders || 0 }, { title: 'QC', value: summary.value.today?.qcOrders || 0 }, { title: '装柜', value: summary.value.today?.containerLoads || 0 }, { title: '出运', value: summary.value.today?.shipments || 0 }])
+const workflowCards = computed(() => [{ title: 'RFQ', value: summary.value.workflow?.rfqs || 0 }, { title: 'CO', value: summary.value.workflow?.customerOrders || 0 }, { title: 'PO', value: summary.value.workflow?.purchaseOrders || 0 }, { title: 'SO', value: summary.value.workflow?.summaryOrders || 0 }, { title: '收货', value: summary.value.workflow?.receivingOrders || 0 }, { title: 'QC', value: summary.value.workflow?.qcOrders || 0 }, { title: '装柜', value: summary.value.workflow?.containerLoads || 0 }, { title: '出运', value: summary.value.workflow?.shipments || 0 }])
+async function load(){summary.value=(await http.get('/business-dashboard/summary')).data; todo.value=(await http.get('/business-dashboard/todo')).data; recent.value=(await http.get('/business-dashboard/recent')).data; warnings.value=(await http.get('/business-dashboard/warnings')).data}
 onMounted(load)
 </script>
 
