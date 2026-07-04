@@ -13,6 +13,8 @@ public class ContainerLoadsController : ControllerBase
     private readonly AppDbContext _db;
     public ContainerLoadsController(AppDbContext db) { _db = db; }
 
+    public record GenerateFromSoRequest(long SummaryOrderId, string? ContainerType, DateTime? LoadDate);
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ContainerLoad>>> List([FromQuery] long? summaryOrderId)
     {
@@ -38,6 +40,36 @@ public class ContainerLoadsController : ControllerBase
         _db.ContainerLoads.Add(input);
         await _db.SaveChangesAsync();
         return input;
+    }
+
+    [HttpPost("generate-from-so")]
+    public async Task<ActionResult<ContainerLoad>> GenerateFromSo(GenerateFromSoRequest request)
+    {
+        if (request.SummaryOrderId <= 0) return BadRequest("SummaryOrderId required");
+        var so = await _db.SummaryOrders.FindAsync(request.SummaryOrderId);
+        if (so == null) return NotFound();
+
+        var lines = await _db.DocumentLines.Where(x => x.DocumentType == "SO" && x.DocumentId == so.Id).ToListAsync();
+        var cl = new ContainerLoad
+        {
+            No = NumberService.NewNo("CL"),
+            SummaryOrderId = so.Id,
+            ContainerType = string.IsNullOrWhiteSpace(request.ContainerType) ? "40HQ" : request.ContainerType!,
+            LoadDate = request.LoadDate ?? DateTime.Today,
+            Status = "draft",
+            TotalCartons = lines.Sum(x => x.Cartons),
+            TotalCbm = lines.Sum(x => x.TotalCbm),
+            TotalGwKg = lines.Sum(x => x.TotalGwKg),
+            Remark = $"由 SO {so.No} 生成",
+            CreatedAt = DateTime.Now
+        };
+        _db.ContainerLoads.Add(cl);
+        so.Status = "container_created";
+        so.UpdatedAt = DateTime.Now;
+        await _db.SaveChangesAsync();
+        await DocumentLineCopyService.CopyAsync(_db, "SO", so.Id, "CL", cl.Id);
+        await _db.SaveChangesAsync();
+        return cl;
     }
 
     [HttpPost("{id:long}/copy")]
