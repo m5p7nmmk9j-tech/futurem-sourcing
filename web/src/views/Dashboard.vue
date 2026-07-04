@@ -6,6 +6,25 @@
     </div>
 
     <div class="card">
+      <div class="section-title">今日经营</div>
+      <el-row :gutter="16">
+        <el-col :span="3" v-for="item in todayCards" :key="item.title"><div class="stat-card small"><div class="stat-title">{{ item.title }}</div><div class="stat-value">{{ item.value }}</div></div></el-col>
+      </el-row>
+    </div>
+
+    <div class="card">
+      <div class="section-title">本月经营</div>
+      <el-row :gutter="16">
+        <el-col :span="4"><div class="stat-card"><div class="stat-title">本月销售</div><div class="stat-value money">{{ summary.month?.sales || 0 }}</div></div></el-col>
+        <el-col :span="4"><div class="stat-card"><div class="stat-title">本月采购</div><div class="stat-value money">{{ summary.month?.purchase || 0 }}</div></div></el-col>
+        <el-col :span="4"><div class="stat-card"><div class="stat-title">本月收款</div><div class="stat-value money">{{ summary.month?.received || 0 }}</div></div></el-col>
+        <el-col :span="4"><div class="stat-card"><div class="stat-title">本月付款</div><div class="stat-value money">{{ summary.month?.paid || 0 }}</div></div></el-col>
+        <el-col :span="4"><div class="stat-card profit"><div class="stat-title">本月利润</div><div class="stat-value money">{{ summary.month?.profit || 0 }}</div></div></el-col>
+        <el-col :span="4"><div class="stat-card"><div class="stat-title">今日利润</div><div class="stat-value money">{{ summary.today?.profit || 0 }}</div></div></el-col>
+      </el-row>
+    </div>
+
+    <div class="card">
       <div class="section-title">基础资料</div>
       <el-row :gutter="16">
         <el-col :span="8"><div class="stat-card"><div class="stat-title">客户</div><div class="stat-value">{{ summary.masterData?.customers || 0 }}</div></div></el-col>
@@ -47,24 +66,12 @@
     <div class="card">
       <div class="section-title">待办事项</div>
       <el-row :gutter="16">
-        <el-col :span="12">
-          <h3>待收款</h3>
-          <el-table :data="todo.pendingReceivables || []" border stripe size="small"><el-table-column prop="no" label="单号"/><el-table-column prop="currency" label="币种" width="80"/><el-table-column prop="balance" label="未收" width="120"/><el-table-column prop="status" label="状态" width="100"/></el-table>
-        </el-col>
-        <el-col :span="12">
-          <h3>待付款</h3>
-          <el-table :data="todo.pendingPayables || []" border stripe size="small"><el-table-column prop="no" label="单号"/><el-table-column prop="currency" label="币种" width="80"/><el-table-column prop="balance" label="未付" width="120"/><el-table-column prop="status" label="状态" width="100"/></el-table>
-        </el-col>
+        <el-col :span="12"><h3>待收款</h3><el-table :data="todo.pendingReceivables || []" border stripe size="small"><el-table-column prop="no" label="单号"/><el-table-column prop="currency" label="币种" width="80"/><el-table-column prop="balance" label="未收" width="120"/><el-table-column prop="status" label="状态" width="100"/></el-table></el-col>
+        <el-col :span="12"><h3>待付款</h3><el-table :data="todo.pendingPayables || []" border stripe size="small"><el-table-column prop="no" label="单号"/><el-table-column prop="currency" label="币种" width="80"/><el-table-column prop="balance" label="未付" width="120"/><el-table-column prop="status" label="状态" width="100"/></el-table></el-col>
       </el-row>
       <el-row :gutter="16" style="margin-top:16px">
-        <el-col :span="12">
-          <h3>待出运装柜</h3>
-          <el-table :data="todo.pendingContainers || []" border stripe size="small"><el-table-column prop="no" label="装柜单"/><el-table-column prop="containerType" label="柜型" width="90"/><el-table-column prop="totalCbm" label="CBM" width="90"/><el-table-column prop="status" label="状态" width="120"/></el-table>
-        </el-col>
-        <el-col :span="12">
-          <h3>未完成出运</h3>
-          <el-table :data="todo.pendingShipments || []" border stripe size="small"><el-table-column prop="no" label="出运单"/><el-table-column prop="shipmentMode" label="方式" width="90"/><el-table-column prop="eta" label="ETA" width="120"/><el-table-column prop="status" label="状态" width="120"/></el-table>
-        </el-col>
+        <el-col :span="12"><h3>待出运装柜</h3><el-table :data="todo.pendingContainers || []" border stripe size="small"><el-table-column prop="no" label="装柜单"/><el-table-column prop="containerType" label="柜型" width="90"/><el-table-column prop="totalCbm" label="CBM" width="90"/><el-table-column prop="status" label="状态" width="120"/></el-table></el-col>
+        <el-col :span="12"><h3>未完成出运</h3><el-table :data="todo.pendingShipments || []" border stripe size="small"><el-table-column prop="no" label="出运单"/><el-table-column prop="shipmentMode" label="方式" width="90"/><el-table-column prop="eta" label="ETA" width="120"/><el-table-column prop="status" label="状态" width="120"/></el-table></el-col>
       </el-row>
     </div>
   </div>
@@ -75,6 +82,16 @@ import { computed, onMounted, ref } from 'vue'
 import { http } from '../api/http'
 const summary = ref<any>({})
 const todo = ref<any>({})
+const todayCards = computed(() => [
+  { title: 'RFQ', value: summary.value.today?.rfqs || 0 },
+  { title: 'CO', value: summary.value.today?.customerOrders || 0 },
+  { title: 'PO', value: summary.value.today?.purchaseOrders || 0 },
+  { title: 'SO', value: summary.value.today?.summaryOrders || 0 },
+  { title: '收货', value: summary.value.today?.receivingOrders || 0 },
+  { title: 'QC', value: summary.value.today?.qcOrders || 0 },
+  { title: '装柜', value: summary.value.today?.containerLoads || 0 },
+  { title: '出运', value: summary.value.today?.shipments || 0 }
+])
 const workflowCards = computed(() => [
   { title: 'RFQ', value: summary.value.workflow?.rfqs || 0 },
   { title: 'CO', value: summary.value.workflow?.customerOrders || 0 },
@@ -95,6 +112,7 @@ onMounted(load)
 .stat-card.small { min-height: 76px; }
 .stat-card.warn { background:#fff7ed; }
 .stat-card.danger { background:#fef2f2; }
+.stat-card.profit { background:#ecfdf5; }
 .stat-title { color: #6b7280; font-size: 14px; }
 .stat-value { margin-top: 10px; font-size: 28px; font-weight: 800; color: #111827; }
 .stat-value.money { font-size: 22px; }
