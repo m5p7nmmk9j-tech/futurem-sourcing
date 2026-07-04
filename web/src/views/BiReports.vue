@@ -37,6 +37,20 @@
     </div>
 
     <div class="card">
+      <div class="section-title">业务流程漏斗</div>
+      <el-table :data="funnel" border stripe size="small">
+        <el-table-column prop="step" label="步骤" width="70" />
+        <el-table-column prop="name" label="节点" width="140" />
+        <el-table-column prop="count" label="数量" width="110" />
+        <el-table-column prop="conversionRate" label="相对RFQ转化率%" width="160" />
+        <el-table-column prop="dropCount" label="上一节点流失" width="140" />
+        <el-table-column label="进度" min-width="260">
+          <template #default="scope"><el-progress :percentage="Number(scope.row.conversionRate || 0)" :stroke-width="14" /></template>
+        </el-table-column>
+      </el-table>
+    </div>
+
+    <div class="card">
       <div class="section-title">趋势分析</div>
       <el-table :data="trends" border stripe size="small">
         <el-table-column prop="date" label="日期" width="160" />
@@ -96,6 +110,7 @@ const period = ref('month')
 const profit = ref<any>({})
 const kpi = ref<any>({})
 const trends = ref<any[]>([])
+const funnel = ref<any[]>([])
 const customerRanking = ref<any[]>([])
 const supplierRanking = ref<any[]>([])
 const productRanking = ref<any[]>([])
@@ -103,6 +118,7 @@ async function load(){
   const params={period:period.value}
   profit.value=(await http.get('/bi-reports/profit',{params})).data
   kpi.value=(await http.get('/bi-reports/kpi',{params})).data
+  funnel.value=(await http.get('/bi-reports/funnel',{params})).data
   trends.value=(await http.get('/bi-reports/trends',{params})).data
   customerRanking.value=(await http.get('/bi-reports/customer-profit-ranking',{params})).data
   supplierRanking.value=(await http.get('/bi-reports/supplier-purchase-ranking',{params})).data
