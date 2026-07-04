@@ -15,6 +15,7 @@ import ContainerLoads from './views/ContainerLoads.vue'
 import Shipments from './views/Shipments.vue'
 import FinanceRecords from './views/FinanceRecords.vue'
 import BankAccounts from './views/BankAccounts.vue'
+import BiReports from './views/BiReports.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -37,7 +38,8 @@ const router = createRouter({
         { path: 'container-loads', component: ContainerLoads },
         { path: 'shipments', component: Shipments },
         { path: 'finance-records', component: FinanceRecords },
-        { path: 'bank-accounts', component: BankAccounts }
+        { path: 'bank-accounts', component: BankAccounts },
+        { path: 'bi-reports', component: BiReports }
       ]
     }
   ]
