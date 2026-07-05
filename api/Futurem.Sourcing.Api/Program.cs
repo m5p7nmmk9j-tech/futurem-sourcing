@@ -34,6 +34,7 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<DatabaseUpgradeService>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? builder.Configuration.GetConnectionString("Default")
@@ -72,6 +73,12 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var upgrade = scope.ServiceProvider.GetRequiredService<DatabaseUpgradeService>();
+    await upgrade.UpgradeAsync();
+}
 
 app.UseSwagger();
 app.UseSwaggerUI();
