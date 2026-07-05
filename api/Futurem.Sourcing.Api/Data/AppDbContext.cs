@@ -32,6 +32,7 @@ public class AppDbContext : DbContext
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<UserAccount> UserAccounts => Set<UserAccount>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -60,6 +61,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Permission>().ToTable("permissions");
         modelBuilder.Entity<UserAccount>().ToTable("user_accounts");
         modelBuilder.Entity<RolePermission>().ToTable("role_permissions");
+        modelBuilder.Entity<AuditLog>().ToTable("audit_logs");
         ApplySnakeCaseColumnNames(modelBuilder);
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
