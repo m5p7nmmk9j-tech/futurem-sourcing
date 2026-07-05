@@ -20,6 +20,7 @@ import Notifications from './views/Notifications.vue'
 import Approvals from './views/Approvals.vue'
 import Rbac from './views/Rbac.vue'
 import AuditLogs from './views/AuditLogs.vue'
+import PrintCenter from './views/PrintCenter.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -47,7 +48,8 @@ const router = createRouter({
         { path: 'message-center', component: Notifications },
         { path: 'approvals', component: Approvals },
         { path: 'rbac', component: Rbac },
-        { path: 'audit-logs', component: AuditLogs }
+        { path: 'audit-logs', component: AuditLogs },
+        { path: 'print-center', component: PrintCenter }
       ]
     }
   ]
