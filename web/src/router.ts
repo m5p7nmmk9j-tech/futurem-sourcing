@@ -24,6 +24,7 @@ import PrintCenter from './views/PrintCenter.vue'
 import ExcelCenter from './views/ExcelCenter.vue'
 import SystemSettings from './views/SystemSettings.vue'
 import BackupCenter from './views/BackupCenter.vue'
+import MonitorCenter from './views/MonitorCenter.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -55,7 +56,8 @@ const router = createRouter({
         { path: 'print-center', component: PrintCenter },
         { path: 'excel-center', component: ExcelCenter },
         { path: 'system-settings', component: SystemSettings },
-        { path: 'backup-center', component: BackupCenter }
+        { path: 'backup-center', component: BackupCenter },
+        { path: 'monitor-center', component: MonitorCenter }
       ]
     }
   ]
