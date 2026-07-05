@@ -5,6 +5,7 @@
       <el-menu router default-active="/" class="menu">
         <el-menu-item index="/">Dashboard</el-menu-item>
         <el-menu-item index="/bi-reports">BI 经营分析</el-menu-item>
+        <el-menu-item index="/message-center">消息中心</el-menu-item>
         <el-menu-item index="/products">Products</el-menu-item>
         <el-menu-item index="/customers">Customers</el-menu-item>
         <el-menu-item index="/suppliers">Suppliers</el-menu-item>
