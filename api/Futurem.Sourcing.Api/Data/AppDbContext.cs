@@ -35,6 +35,9 @@ public class AppDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<PrintTemplate> PrintTemplates => Set<PrintTemplate>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<UserSession> UserSessions => Set<UserSession>();
+    public DbSet<LoginLog> LoginLogs => Set<LoginLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -66,6 +69,12 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<AuditLog>().ToTable("audit_logs");
         modelBuilder.Entity<PrintTemplate>().ToTable("print_templates");
         modelBuilder.Entity<SystemSetting>().ToTable("system_settings");
+        modelBuilder.Entity<RefreshToken>().ToTable("refresh_tokens");
+        modelBuilder.Entity<UserSession>().ToTable("user_sessions");
+        modelBuilder.Entity<LoginLog>().ToTable("login_logs");
+        modelBuilder.Entity<UserAccount>().HasIndex(x => x.Username).IsUnique();
+        modelBuilder.Entity<RefreshToken>().HasIndex(x => x.TokenHash);
+        modelBuilder.Entity<UserSession>().HasIndex(x => x.SessionId);
         ApplySnakeCaseColumnNames(modelBuilder);
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
