@@ -8,6 +8,7 @@
         <el-menu-item index="/message-center">消息中心</el-menu-item>
         <el-menu-item index="/approvals">审批流</el-menu-item>
         <el-menu-item index="/rbac">权限管理</el-menu-item>
+        <el-menu-item index="/audit-logs">操作日志</el-menu-item>
         <el-menu-item index="/products">Products</el-menu-item>
         <el-menu-item index="/customers">Customers</el-menu-item>
         <el-menu-item index="/suppliers">Suppliers</el-menu-item>
