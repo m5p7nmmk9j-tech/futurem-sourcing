@@ -12,7 +12,11 @@ public class BackupCenterController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly BackupService _backup;
-    public BackupCenterController(AppDbContext db, BackupService backup) { _db = db; _backup = backup; }
+    public BackupCenterController(AppDbContext db, IWebHostEnvironment env, ILogger<BackupService> logger)
+    {
+        _db = db;
+        _backup = new BackupService(db, env, logger);
+    }
 
     [HttpGet("jobs")]
     public async Task<ActionResult<IEnumerable<BackupJob>>> Jobs() => await _db.BackupJobs.OrderByDescending(x => x.Id).ToListAsync();
