@@ -34,6 +34,7 @@ public class AppDbContext : DbContext
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<PrintTemplate> PrintTemplates => Set<PrintTemplate>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -64,6 +65,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<RolePermission>().ToTable("role_permissions");
         modelBuilder.Entity<AuditLog>().ToTable("audit_logs");
         modelBuilder.Entity<PrintTemplate>().ToTable("print_templates");
+        modelBuilder.Entity<SystemSetting>().ToTable("system_settings");
         ApplySnakeCaseColumnNames(modelBuilder);
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
