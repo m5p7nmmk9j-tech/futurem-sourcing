@@ -12,6 +12,7 @@
         <el-menu-item index="/print-center">打印中心</el-menu-item>
         <el-menu-item index="/excel-center">Excel中心</el-menu-item>
         <el-menu-item index="/system-settings">系统参数</el-menu-item>
+        <el-menu-item index="/backup-center">备份中心</el-menu-item>
         <el-menu-item index="/products">Products</el-menu-item>
         <el-menu-item index="/customers">Customers</el-menu-item>
         <el-menu-item index="/suppliers">Suppliers</el-menu-item>
@@ -51,7 +52,7 @@
           </el-autocomplete>
           <el-button @click="openSearchDialog">搜索</el-button>
         </div>
-        <div>V0.1 Alpha</div>
+        <div>V1.0 RC</div>
       </el-header>
       <el-main><router-view /></el-main>
     </el-container>
