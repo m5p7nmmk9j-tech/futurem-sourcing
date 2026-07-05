@@ -68,11 +68,12 @@ public class SummaryOrdersController : ControllerBase
         if (pos.Count == 0) return NotFound();
 
         var customerId = request.CustomerId ?? pos.FirstOrDefault(x => x.CustomerId.HasValue)?.CustomerId;
+        if (!customerId.HasValue) return BadRequest("CustomerId required");
         var so = new SummaryOrder
         {
             No = NumberService.NewNo("SO"),
             BuyingTripId = pos.FirstOrDefault()?.BuyingTripId,
-            CustomerId = customerId,
+            CustomerId = customerId.Value,
             OrderDate = DateTime.Today,
             Currency = string.IsNullOrWhiteSpace(request.Currency) ? "USD" : request.Currency!,
             Status = "draft",

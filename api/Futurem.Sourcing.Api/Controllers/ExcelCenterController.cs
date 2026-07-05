@@ -41,16 +41,37 @@ public class ExcelCenterController : ControllerBase
     {
         var csv = module switch
         {
-            "customers" => ToCsv(Headers(module), (await _db.Customers.OrderByDescending(x => x.Id).Take(5000).ToListAsync()).Select(x => new[] { x.Code, x.Name, x.Country, x.Contact, x.Email, x.Phone })),
-            "suppliers" => ToCsv(Headers(module), (await _db.Suppliers.OrderByDescending(x => x.Id).Take(5000).ToListAsync()).Select(x => new[] { x.Code, x.Name, x.Country, x.Contact, x.Email, x.Phone })),
-            "products" => ToCsv(Headers(module), (await _db.Products.OrderByDescending(x => x.Id).Take(5000).ToListAsync()).Select(x => new[] { x.Sku, x.NameCn, x.NameEn, x.Barcode, x.Unit, x.CartonQty.ToString("0.##") })),
-            "purchase-orders" => ToCsv(Headers(module), (await _db.PurchaseOrders.OrderByDescending(x => x.Id).Take(5000).ToListAsync()).Select(x => new[] { x.No, x.SupplierId.ToString(), x.CustomerId.ToString(), x.OrderDate?.ToString("yyyy-MM-dd") ?? "", x.Currency, x.TotalAmount.ToString("0.##") })),
+            "customers" => ToCsv(Headers(module), (await _db.Customers.OrderByDescending(x => x.Id).Take(5000).ToListAsync()).Select(x => new[] { x.Code, x.Name, x.Country, x.ContactName, x.Email, x.Phone })),
+            "suppliers" => ToCsv(Headers(module), (await _db.Suppliers.OrderByDescending(x => x.Id).Take(5000).ToListAsync()).Select(x => new[] { x.Code, x.Name, "", x.ContactName, x.Email, x.Phone })),
+            "products" => ToCsv(Headers(module), (await _db.Products.OrderByDescending(x => x.Id).Take(5000).ToListAsync()).Select(x => new[] { x.Sku, x.NameCn, x.NameEn, x.Barcode, x.Unit, "" })),
+            "purchase-orders" => await ExportPurchaseOrders(),
             "so-orders" => ToCsv(Headers(module), (await _db.SummaryOrders.OrderByDescending(x => x.Id).Take(5000).ToListAsync()).Select(x => new[] { x.No, x.CustomerId.ToString(), x.OrderDate?.ToString("yyyy-MM-dd") ?? "", x.Currency, x.ReceivableAmount.ToString("0.##") })),
-            "finance-records" => ToCsv(Headers(module), (await _db.FinanceRecords.OrderByDescending(x => x.Id).Take(5000).ToListAsync()).Select(x => new[] { x.No, x.RecordType, x.TargetType, x.TargetId?.ToString() ?? "", x.Currency, x.Amount.ToString("0.##") })),
-            "payments" => ToCsv(Headers(module), (await _db.Payments.OrderByDescending(x => x.Id).Take(5000).ToListAsync()).Select(x => new[] { x.No, x.Direction, x.Currency, x.Amount.ToString("0.##"), x.PaymentDate.ToString("yyyy-MM-dd"), x.PaymentMethod })),
+            "finance-records" => ToCsv(Headers(module), (await _db.FinanceRecords.OrderByDescending(x => x.Id).Take(5000).ToListAsync()).Select(x => new[] { x.No, x.RecordType, x.TargetType, x.TargetId.ToString(), x.Currency, x.Amount.ToString("0.##") })),
+            "payments" => ToCsv(Headers(module), (await _db.Payments.OrderByDescending(x => x.Id).Take(5000).ToListAsync()).Select(x => new[] { x.No, x.Direction, x.Currency, x.Amount.ToString("0.##"), x.PaymentDate?.ToString("yyyy-MM-dd") ?? "", x.PaymentMethod })),
             _ => ToCsv(Headers(module), Array.Empty<string[]>())
         };
         return File(Encoding.UTF8.GetBytes(csv), "text/csv", $"{module}_{DateTime.Now:yyyyMMddHHmmss}.csv");
+    }
+
+    private async Task<string> ExportPurchaseOrders()
+    {
+        var orders = await _db.PurchaseOrders.OrderByDescending(x => x.Id).Take(5000).ToListAsync();
+        var orderIds = orders.Select(x => x.Id).ToList();
+        var totals = await _db.DocumentLines
+            .Where(x => x.DocumentType == "PO" && orderIds.Contains(x.DocumentId))
+            .GroupBy(x => x.DocumentId)
+            .Select(x => new { DocumentId = x.Key, Total = x.Sum(line => line.Amount) })
+            .ToDictionaryAsync(x => x.DocumentId, x => x.Total);
+
+        return ToCsv(Headers("purchase-orders"), orders.Select(x => new[]
+        {
+            x.No,
+            x.SupplierId.ToString(),
+            x.CustomerId?.ToString() ?? "",
+            x.OrderDate?.ToString("yyyy-MM-dd") ?? "",
+            x.Currency,
+            totals.GetValueOrDefault(x.Id).ToString("0.##")
+        }));
     }
 
     [HttpPost("import/{module}")]
@@ -75,7 +96,7 @@ public class ExcelCenterController : ControllerBase
         _ => new[] { "no", "name", "remark" }
     };
 
-    private static string ToCsv(IEnumerable<string> headers, IEnumerable<string[]> rows)
+    private static string ToCsv(IEnumerable<string> headers, IEnumerable<string?[]> rows)
     {
         var sb = new StringBuilder();
         sb.AppendLine(string.Join(',', headers.Select(Escape)));

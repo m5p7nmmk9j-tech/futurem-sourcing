@@ -129,7 +129,7 @@ public class PrintCenterController : ControllerBase
         if (documentType == "PO")
         {
             var po = await _db.PurchaseOrders.FindAsync(id);
-            if (po != null) { data["no"] = po.No; data["currency"] = po.Currency; data["status"] = po.Status; data["amount"] = po.TotalAmount.ToString("0.##"); data["date"] = po.OrderDate?.ToString("yyyy-MM-dd") ?? data["date"]; }
+            if (po != null) { data["no"] = po.No; data["currency"] = po.Currency; data["status"] = po.Status; data["amount"] = (await _db.DocumentLines.Where(x => x.DocumentType == "PO" && x.DocumentId == po.Id).SumAsync(x => x.Amount)).ToString("0.##"); data["date"] = po.OrderDate?.ToString("yyyy-MM-dd") ?? data["date"]; }
         }
         else if (documentType == "SO" || documentType == "PI" || documentType == "INVOICE")
         {
@@ -144,12 +144,12 @@ public class PrintCenterController : ControllerBase
         else if (documentType == "SHIPMENT")
         {
             var s = await _db.Shipments.FindAsync(id);
-            if (s != null) { data["no"] = s.No; data["status"] = s.Status; data["carrier"] = s.Carrier; data["mode"] = s.ShipmentMode; data["date"] = s.Etd?.ToString("yyyy-MM-dd") ?? data["date"]; data["eta"] = s.Eta?.ToString("yyyy-MM-dd") ?? string.Empty; }
+            if (s != null) { data["no"] = s.No; data["status"] = s.Status; data["carrier"] = s.Carrier ?? string.Empty; data["mode"] = s.ShipmentMode; data["date"] = s.Etd?.ToString("yyyy-MM-dd") ?? data["date"]; data["eta"] = s.Eta?.ToString("yyyy-MM-dd") ?? string.Empty; }
         }
         else if (documentType == "PAYMENT")
         {
             var p = await _db.Payments.FindAsync(id);
-            if (p != null) { data["no"] = p.No; data["currency"] = p.Currency; data["amount"] = p.Amount.ToString("0.##"); data["date"] = p.PaymentDate.ToString("yyyy-MM-dd"); data["method"] = p.PaymentMethod; data["direction"] = p.Direction; }
+            if (p != null) { data["no"] = p.No; data["currency"] = p.Currency; data["amount"] = p.Amount.ToString("0.##"); data["date"] = p.PaymentDate?.ToString("yyyy-MM-dd") ?? data["date"]; data["method"] = p.PaymentMethod; data["direction"] = p.Direction; }
         }
         if (!data.ContainsKey("no")) data["no"] = $"{documentType}-{id}";
         if (!data.ContainsKey("amount")) data["amount"] = "0";
