@@ -22,6 +22,7 @@ import Rbac from './views/Rbac.vue'
 import AuditLogs from './views/AuditLogs.vue'
 import PrintCenter from './views/PrintCenter.vue'
 import ExcelCenter from './views/ExcelCenter.vue'
+import SystemSettings from './views/SystemSettings.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -51,7 +52,8 @@ const router = createRouter({
         { path: 'rbac', component: Rbac },
         { path: 'audit-logs', component: AuditLogs },
         { path: 'print-center', component: PrintCenter },
-        { path: 'excel-center', component: ExcelCenter }
+        { path: 'excel-center', component: ExcelCenter },
+        { path: 'system-settings', component: SystemSettings }
       ]
     }
   ]
