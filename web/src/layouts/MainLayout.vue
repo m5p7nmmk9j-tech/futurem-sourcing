@@ -13,6 +13,7 @@
         <el-menu-item index="/excel-center">Excel中心</el-menu-item>
         <el-menu-item index="/system-settings">系统参数</el-menu-item>
         <el-menu-item index="/backup-center">备份中心</el-menu-item>
+        <el-menu-item index="/monitor-center">系统监控</el-menu-item>
         <el-menu-item index="/products">Products</el-menu-item>
         <el-menu-item index="/customers">Customers</el-menu-item>
         <el-menu-item index="/suppliers">Suppliers</el-menu-item>
