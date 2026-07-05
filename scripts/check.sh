@@ -9,7 +9,7 @@ fi
 echo "Checking Web"
 if [ -f web/package.json ]; then
   cd web
-  npm install
+  npm ci
   npm run build
 fi
 echo "Check completed"

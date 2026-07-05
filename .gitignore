@@ -1,0 +1,20 @@
+# .NET build outputs
+**/bin/
+**/obj/
+
+# Node/Vite build outputs
+**/node_modules/
+web/dist/
+
+# Local environment and editor files
+.env
+.env.*
+!.env.example
+.DS_Store
+.idea/
+.vscode/
+
+# Test and runtime artifacts
+TestResults/
+coverage/
+*.log

@@ -8,7 +8,7 @@ if exist api\Futurem.Sourcing.Api\Futurem.Sourcing.Api.csproj (
 echo Checking Web
 if exist web\package.json (
   cd web
-  npm install
+  npm ci
   npm run build
 )
 echo Check completed
