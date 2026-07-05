@@ -8,7 +8,7 @@ namespace Futurem.Sourcing.Api.Controllers;
 public class CacheController : ControllerBase
 {
     private readonly CacheService _cache;
-    public CacheController(CacheService cache) { _cache = cache; }
+    public CacheController(IConfiguration config, ILogger<CacheService> logger) { _cache = new CacheService(config, logger); }
 
     [HttpGet("status")]
     public async Task<ActionResult<object>> Status()
