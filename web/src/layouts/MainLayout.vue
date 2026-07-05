@@ -10,6 +10,7 @@
         <el-menu-item index="/rbac">权限管理</el-menu-item>
         <el-menu-item index="/audit-logs">操作日志</el-menu-item>
         <el-menu-item index="/print-center">打印中心</el-menu-item>
+        <el-menu-item index="/excel-center">Excel中心</el-menu-item>
         <el-menu-item index="/products">Products</el-menu-item>
         <el-menu-item index="/customers">Customers</el-menu-item>
         <el-menu-item index="/suppliers">Suppliers</el-menu-item>
