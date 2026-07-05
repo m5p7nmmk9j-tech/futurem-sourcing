@@ -26,6 +26,8 @@ public class AppDbContext : DbContext
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<DocumentLine> DocumentLines => Set<DocumentLine>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<ApprovalRequest> ApprovalRequests => Set<ApprovalRequest>();
+    public DbSet<ApprovalStep> ApprovalSteps => Set<ApprovalStep>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -48,25 +50,26 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Payment>().ToTable("payments");
         modelBuilder.Entity<DocumentLine>().ToTable("document_lines");
         modelBuilder.Entity<Notification>().ToTable("notifications");
+        modelBuilder.Entity<ApprovalRequest>().ToTable("approval_requests");
+        modelBuilder.Entity<ApprovalStep>().ToTable("approval_steps");
         ApplySnakeCaseColumnNames(modelBuilder);
-        modelBuilder.Entity<Customer>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<Supplier>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<Market>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<Product>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<ProductCategory>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<Rfq>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<CustomerOrder>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<PurchaseOrder>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<SummaryOrder>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<ReceivingOrder>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<QcOrder>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<ContainerLoad>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<Shipment>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<FinanceRecord>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<BankAccount>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<Payment>().HasQueryFilter(x => !x.IsDeleted);
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            var clr = entityType.ClrType;
+            if (typeof(BaseEntity).IsAssignableFrom(clr))
+            {
+                modelBuilder.Entity(clr).HasQueryFilter(BuildIsNotDeletedFilter(clr));
+            }
+        }
         modelBuilder.Entity<DocumentLine>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<Notification>().HasQueryFilter(x => !x.IsDeleted);
+    }
+
+    private static System.Linq.Expressions.LambdaExpression BuildIsNotDeletedFilter(Type type)
+    {
+        var parameter = System.Linq.Expressions.Expression.Parameter(type, "x");
+        var property = System.Linq.Expressions.Expression.Property(parameter, nameof(BaseEntity.IsDeleted));
+        var body = System.Linq.Expressions.Expression.Equal(property, System.Linq.Expressions.Expression.Constant(false));
+        return System.Linq.Expressions.Expression.Lambda(body, parameter);
     }
 
     private static void ApplySnakeCaseColumnNames(ModelBuilder modelBuilder)
