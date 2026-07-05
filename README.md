@@ -36,18 +36,25 @@ Payment 收付款
 - 消息中心：业务预警生成、未读统计、标记已读
 - 审批流：提交、通过、驳回、退回、多步骤审批
 - RBAC 权限：角色、权限、用户、角色授权、数据权限范围
+- JWT 登录：Access Token、Refresh Token、Session、Login Log
 - 操作日志：新增、修改、删除、审批、导出、打印、登录等记录
 - 打印中心：PO、SO、PI、Invoice、Packing、QC、Receiving、Container、Shipment、Payment
 - Excel 中心：模板下载、CSV 导出、CSV 上传解析
 - 系统参数：公司、汇率、编号规则、港口、付款方式、SMTP、WhatsApp、备份参数
 - 全局搜索：SKU、客户、供应商、PO、SO、装柜、出运、财务
-- Docker 部署：MySQL + API + Web + Nginx
+- 数据库版本管理：Schema Version、Migration History、启动检查
+- Redis 缓存：状态检查、按范围清理、不可用自动降级
+- 备份中心：备份任务、手动备份、备份历史、恢复前校验
+- 系统监控：API、MySQL、Redis、磁盘、内存、日志、备份状态
+- Docker 部署：MySQL + Redis + API + Web + Nginx
+- CI 检查：API Build、Web Build、Docker Compose Build
 
 ## 技术架构
 
-- Backend: .NET 8 Web API
+- Backend: .NET 9 Web API
 - Frontend: Vue 3 + Element Plus
 - Database: MySQL 8.0
+- Cache: Redis 7
 - Deployment: Docker Compose
 - Reverse Proxy: Nginx
 
@@ -56,7 +63,7 @@ Payment 收付款
 ### Mac / Linux
 
 ```bash
-chmod +x scripts/start-docker.sh scripts/stop-docker.sh
+chmod +x scripts/start-docker.sh scripts/stop-docker.sh scripts/check.sh
 ./scripts/start-docker.sh
 ```
 
@@ -74,6 +81,7 @@ scripts/start-docker.bat
 Web:   http://localhost:3000
 API:   http://localhost:8080
 MySQL: localhost:3307
+Redis: localhost:6379
 ```
 
 ## 默认数据库
@@ -90,12 +98,58 @@ Password: futurem123456
 MYSQL_ROOT_PASSWORD=your_password docker compose up -d --build
 ```
 
+## 初始化建议
+
+系统启动后，建议在 Swagger 中依次执行：
+
+```text
+POST /api/auth/seed-admin
+POST /api/system-settings/seed
+POST /api/print-center/seed
+POST /api/backup-center/seed
+```
+
+默认管理员：
+
+```text
+Username: admin
+Password: Admin@123456
+```
+
+## 编译检查
+
+Mac / Linux：
+
+```bash
+./scripts/check.sh
+```
+
+Windows：
+
+```text
+scripts/check.bat
+```
+
 ## 版本状态
 
 ```text
 Version: V1.0.0 Enterprise Release Candidate
-Status: Core ERP completed, ready for testing and deployment hardening.
+Status: Core ERP completed. CI and release validation in progress.
 ```
+
+## V1.0 Release 验收清单
+
+- API 编译通过
+- Web 编译通过
+- Docker Compose 构建通过
+- MySQL 初始化通过
+- Redis 状态检查通过
+- JWT 登录通过
+- 全业务流程测试通过
+- 打印中心测试通过
+- Excel 中心测试通过
+- 备份中心测试通过
+- 系统监控测试通过
 
 ## 后续路线
 
