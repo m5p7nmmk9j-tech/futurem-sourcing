@@ -38,6 +38,8 @@ public class AppDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<LoginLog> LoginLogs => Set<LoginLog>();
+    public DbSet<SchemaVersion> SchemaVersions => Set<SchemaVersion>();
+    public DbSet<MigrationHistory> MigrationHistories => Set<MigrationHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -72,9 +74,12 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<RefreshToken>().ToTable("refresh_tokens");
         modelBuilder.Entity<UserSession>().ToTable("user_sessions");
         modelBuilder.Entity<LoginLog>().ToTable("login_logs");
+        modelBuilder.Entity<SchemaVersion>().ToTable("schema_versions");
+        modelBuilder.Entity<MigrationHistory>().ToTable("migration_history");
         modelBuilder.Entity<UserAccount>().HasIndex(x => x.Username).IsUnique();
         modelBuilder.Entity<RefreshToken>().HasIndex(x => x.TokenHash);
         modelBuilder.Entity<UserSession>().HasIndex(x => x.SessionId);
+        modelBuilder.Entity<SchemaVersion>().HasIndex(x => x.Version);
         ApplySnakeCaseColumnNames(modelBuilder);
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
