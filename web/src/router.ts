@@ -23,6 +23,7 @@ import AuditLogs from './views/AuditLogs.vue'
 import PrintCenter from './views/PrintCenter.vue'
 import ExcelCenter from './views/ExcelCenter.vue'
 import SystemSettings from './views/SystemSettings.vue'
+import BackupCenter from './views/BackupCenter.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -53,7 +54,8 @@ const router = createRouter({
         { path: 'audit-logs', component: AuditLogs },
         { path: 'print-center', component: PrintCenter },
         { path: 'excel-center', component: ExcelCenter },
-        { path: 'system-settings', component: SystemSettings }
+        { path: 'system-settings', component: SystemSettings },
+        { path: 'backup-center', component: BackupCenter }
       ]
     }
   ]
