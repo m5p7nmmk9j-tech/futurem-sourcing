@@ -1,0 +1,42 @@
+version: "3.9"
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: futurem_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: futurem_sourcing
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-futurem123456}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: futurem_api
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: Server=mysql;Port=3306;Database=futurem_sourcing;Uid=root;Pwd=${MYSQL_ROOT_PASSWORD:-futurem123456};
+    ports:
+      - "8080:8080"
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: futurem_web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3000:80"
+
+volumes:
+  mysql_data:
