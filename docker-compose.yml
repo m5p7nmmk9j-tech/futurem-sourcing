@@ -13,6 +13,15 @@ services:
       - mysql_data:/var/lib/mysql
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
 
+  redis:
+    image: redis:7-alpine
+    container_name: futurem_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
   api:
     build:
       context: ./api
@@ -21,9 +30,12 @@ services:
     restart: unless-stopped
     depends_on:
       - mysql
+      - redis
     environment:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__Default: Server=mysql;Port=3306;Database=futurem_sourcing;Uid=root;Pwd=${MYSQL_ROOT_PASSWORD:-futurem123456};
+      ConnectionStrings__Redis: redis:6379
+      Redis__Enabled: "true"
     ports:
       - "8080:8080"
 
@@ -40,3 +52,4 @@ services:
 
 volumes:
   mysql_data:
+  redis_data:
