@@ -28,6 +28,10 @@ public class AppDbContext : DbContext
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<ApprovalRequest> ApprovalRequests => Set<ApprovalRequest>();
     public DbSet<ApprovalStep> ApprovalSteps => Set<ApprovalStep>();
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<Permission> Permissions => Set<Permission>();
+    public DbSet<UserAccount> UserAccounts => Set<UserAccount>();
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -52,16 +56,16 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Notification>().ToTable("notifications");
         modelBuilder.Entity<ApprovalRequest>().ToTable("approval_requests");
         modelBuilder.Entity<ApprovalStep>().ToTable("approval_steps");
+        modelBuilder.Entity<Role>().ToTable("roles");
+        modelBuilder.Entity<Permission>().ToTable("permissions");
+        modelBuilder.Entity<UserAccount>().ToTable("user_accounts");
+        modelBuilder.Entity<RolePermission>().ToTable("role_permissions");
         ApplySnakeCaseColumnNames(modelBuilder);
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             var clr = entityType.ClrType;
-            if (typeof(BaseEntity).IsAssignableFrom(clr))
-            {
-                modelBuilder.Entity(clr).HasQueryFilter(BuildIsNotDeletedFilter(clr));
-            }
+            if (typeof(BaseEntity).IsAssignableFrom(clr)) modelBuilder.Entity(clr).HasQueryFilter(BuildIsNotDeletedFilter(clr));
         }
-        modelBuilder.Entity<DocumentLine>().HasQueryFilter(x => !x.IsDeleted);
     }
 
     private static System.Linq.Expressions.LambdaExpression BuildIsNotDeletedFilter(Type type)
