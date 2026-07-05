@@ -18,6 +18,7 @@ import BankAccounts from './views/BankAccounts.vue'
 import BiReports from './views/BiReports.vue'
 import Notifications from './views/Notifications.vue'
 import Approvals from './views/Approvals.vue'
+import Rbac from './views/Rbac.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -43,7 +44,8 @@ const router = createRouter({
         { path: 'bank-accounts', component: BankAccounts },
         { path: 'bi-reports', component: BiReports },
         { path: 'message-center', component: Notifications },
-        { path: 'approvals', component: Approvals }
+        { path: 'approvals', component: Approvals },
+        { path: 'rbac', component: Rbac }
       ]
     }
   ]
