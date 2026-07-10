@@ -98,10 +98,48 @@ function selectResult(item:any){ go(item) }
 function go(row:any){ searchVisible.value=false; if(row.route) router.push(row.route) }
 </script>
 <style scoped>
-.layout { height: 100vh; }
-.aside { background: #111827; color: #fff; }
-.brand { height: 64px; display: flex; align-items: center; padding: 0 18px; font-size: 18px; font-weight: 800; }
-.menu { border-right: 0; background: #111827; }
+.layout { height: 100vh; background: #f5f7fb; }
+.aside {
+  background: linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%);
+  border-right: 1px solid #dbe7f6;
+  box-shadow: 8px 0 24px rgba(37, 99, 235, 0.08);
+  color: #1f2937;
+}
+.brand {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  margin: 12px 14px 8px;
+  padding: 0 14px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #2563eb 0%, #38bdf8 100%);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: .2px;
+  box-shadow: 0 12px 26px rgba(37, 99, 235, .22);
+}
+.menu {
+  border-right: 0;
+  padding: 4px 12px 18px;
+  background: transparent;
+}
+.menu :deep(.el-menu-item) {
+  height: 40px;
+  margin: 4px 0;
+  border-radius: 12px;
+  color: #475569;
+  font-weight: 600;
+}
+.menu :deep(.el-menu-item:hover) {
+  background: #e0efff;
+  color: #1d4ed8;
+}
+.menu :deep(.el-menu-item.is-active) {
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 10px 18px rgba(37, 99, 235, .22);
+}
 .header { display: flex; align-items: center; justify-content: space-between; background: #fff; border-bottom: 1px solid #e5e7eb; }
 .search-wrap{display:flex;gap:8px;align-items:center}.search-item{display:flex;align-items:center;gap:8px}.search-no{font-weight:700}.search-title{color:#6b7280}
 </style>
