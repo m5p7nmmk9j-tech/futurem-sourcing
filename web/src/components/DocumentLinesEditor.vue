@@ -18,8 +18,21 @@
     </el-row>
 
     <el-table :data="displayRows" border stripe size="small">
-      <el-table-column prop="sku" label="SKU" width="130" />
-      <el-table-column prop="barcode" label="条码" width="145" />
+      <el-table-column label="图片" width="84" align="center">
+        <template #default="scope">
+          <el-image
+            v-if="scope.row.imageUrl"
+            :src="scope.row.imageUrl"
+            :preview-src-list="[scope.row.imageUrl]"
+            fit="cover"
+            preview-teleported
+            class="line-product-image"
+          />
+          <span v-else class="image-empty">暂无</span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="sku" label="货号" width="140" />
+      <el-table-column prop="barcode" label="条码号" width="145" />
       <el-table-column label="条码图片" width="190" align="center">
         <template #default="scope"><BarcodeImage :value="scope.row.barcode" :height="34" :width="1.15" /></template>
       </el-table-column>
@@ -46,7 +59,7 @@
         <el-row :gutter="12">
           <el-col :span="12"><el-form-item label="商品"><div class="select-with-action"><el-select v-model="form.productId" filterable clearable style="width:100%" @change="selectProduct"><el-option v-for="p in products" :key="p.id" :label="`${p.sku} / ${p.nameCn} / ${p.barcode || '无条码'}`" :value="p.id" /></el-select><el-button @click="openProductDialog">新增</el-button></div></el-form-item></el-col>
           <el-col :span="12"><el-form-item label="名称"><el-input v-model="form.productName" /></el-form-item></el-col>
-          <el-col :span="8"><el-form-item label="SKU"><el-input v-model="form.sku" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="货号"><el-input v-model="form.sku" /></el-form-item></el-col>
           <el-col :span="8"><el-form-item label="条码"><el-input v-model="form.barcode" disabled /></el-form-item></el-col>
           <el-col :span="8"><el-form-item label="条码图片"><BarcodeImage :value="form.barcode" :height="32" :width="1.1" /></el-form-item></el-col>
           <el-col :span="8"><el-form-item label="单价"><el-input-number v-model="form.unitPrice" :min="0" :precision="4" style="width:100%" /></el-form-item></el-col>
@@ -127,7 +140,13 @@ function openEdit(row: any) { Object.assign(form, row); dialogVisible.value = tr
 function syncQuantityFromPacking() { if (Number(form.cartonQty || 0) > 0 && Number(form.cartons || 0) > 0) form.quantity = Number(form.cartonQty || 0) * Number(form.cartons || 0) }
 function withCalculatedTotals(line: any) {
   const product = products.value.find(x => x.id === line.productId)
-  return { ...line, barcode: line.barcode || product?.barcode || '', ...calculateDocumentLine(line) }
+  return {
+    ...line,
+    sku: line.sku || product?.sku || '',
+    barcode: line.barcode || product?.barcode || '',
+    imageUrl: line.imageUrl || product?.imageUrl || '',
+    ...calculateDocumentLine(line)
+  }
 }
 function openProductDialog() { Object.assign(productForm, { nameCn: form.productName || '', nameEn: '', barcode: form.barcode || '', unit: form.unit || 'PCS', purchasePrice: form.unitPrice || 0, cartonQty: form.cartonQty || 0, cartonLengthCm: form.cartonLengthCm || 0, cartonWidthCm: form.cartonWidthCm || 0, cartonHeightCm: form.cartonHeightCm || 0, cartonGwKg: form.cartonGwKg || 0, cartonNwKg: form.cartonNwKg || 0, customerItemNo: form.customerItemNo || '', imageUrl: form.imageUrl || '', remark: '' }); productDialogVisible.value = true }
 function selectProductImage(event: Event) {
@@ -160,4 +179,6 @@ onMounted(async () => { await loadProducts(); await load() })
 .lines-title { font-weight: 700; font-size: 16px; }
 .summary-row { margin-bottom: 12px; }
 .select-with-action { display: flex; gap: 8px; width: 100%; }
+.line-product-image { width: 52px; height: 52px; border-radius: 6px; background: #f3f4f6; cursor: zoom-in; }
+.image-empty { color: #9ca3af; font-size: 12px; }
 </style>
