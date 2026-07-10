@@ -43,6 +43,8 @@ public class DatabaseUpgradeService
                 await _db.Database.EnsureCreatedAsync();
             }
             await EnsureV1ProductColumnsAsync();
+            await EnsureV1ProductCodeColumnsAsync();
+            await EnsureV1ProductIndexesAsync();
 
             history = new MigrationHistory { MigrationName = "startup-auto-upgrade", Version = TargetVersion, StartedAt = DateTime.Now, Status = "running", CreatedAt = DateTime.Now };
             _db.MigrationHistories.Add(history);
@@ -87,5 +89,44 @@ public class DatabaseUpgradeService
             .SingleAsync();
         if (exists > 0) return;
         await _db.Database.ExecuteSqlRawAsync(alterSql);
+    }
+
+    private async Task EnsureV1ProductCodeColumnsAsync()
+    {
+        await _db.Database.ExecuteSqlRawAsync("ALTER TABLE `products` MODIFY COLUMN `sku` VARCHAR(80) NOT NULL");
+        await _db.Database.ExecuteSqlRawAsync("ALTER TABLE `products` MODIFY COLUMN `barcode` VARCHAR(80) NOT NULL");
+    }
+
+    private async Task EnsureV1ProductIndexesAsync()
+    {
+        await AddUniqueIndexIfMissingAsync(
+            "products",
+            "barcode",
+            "idx_products_barcode_unique",
+            "SELECT COUNT(*) AS `Value` FROM (SELECT `barcode` FROM `products` WHERE `barcode` IS NOT NULL AND `barcode` <> '' GROUP BY `barcode` HAVING COUNT(*) > 1) duplicated_values",
+            "CREATE UNIQUE INDEX `idx_products_barcode_unique` ON `products` (`barcode`)");
+        await AddUniqueIndexIfMissingAsync(
+            "products",
+            "sku",
+            "idx_products_sku_unique",
+            "SELECT COUNT(*) AS `Value` FROM (SELECT `sku` FROM `products` WHERE `sku` IS NOT NULL AND `sku` <> '' GROUP BY `sku` HAVING COUNT(*) > 1) duplicated_values",
+            "CREATE UNIQUE INDEX `idx_products_sku_unique` ON `products` (`sku`)");
+    }
+
+    private async Task AddUniqueIndexIfMissingAsync(string table, string column, string indexName, string duplicateSql, string createIndexSql)
+    {
+        var exists = await _db.Database
+            .SqlQueryRaw<int>("SELECT COUNT(*) AS `Value` FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = {0} AND index_name = {1}", table, indexName)
+            .SingleAsync();
+        if (exists > 0) return;
+
+        var duplicates = await _db.Database.SqlQueryRaw<int>(duplicateSql).SingleAsync();
+        if (duplicates > 0)
+        {
+            _logger.LogWarning("Skipped unique index {IndexName} because duplicate {Column} values exist in {Table}", indexName, column, table);
+            return;
+        }
+
+        await _db.Database.ExecuteSqlRawAsync(createIndexSql);
     }
 }

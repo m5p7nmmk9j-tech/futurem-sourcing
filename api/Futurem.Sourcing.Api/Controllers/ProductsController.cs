@@ -46,8 +46,10 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<Product>> Create(Product input)
     {
         input.Id = 0;
-        input.Sku = string.IsNullOrWhiteSpace(input.Sku) ? NumberService.NewProductSku() : input.Sku;
-        input.Barcode = string.IsNullOrWhiteSpace(input.Barcode) ? NumberService.NewProductBarcode() : input.Barcode;
+        input.Sku = string.IsNullOrWhiteSpace(input.Sku) ? await NewUniqueSkuAsync() : input.Sku.Trim();
+        input.Barcode = string.IsNullOrWhiteSpace(input.Barcode) ? await NewUniqueBarcodeAsync() : input.Barcode.Trim();
+        if (await _db.Products.IgnoreQueryFilters().AnyAsync(x => x.Sku == input.Sku)) return BadRequest("SKU already exists");
+        if (await _db.Products.IgnoreQueryFilters().AnyAsync(x => x.Barcode == input.Barcode)) return BadRequest("Barcode already exists");
         input.CreatedAt = DateTime.Now;
         _db.Products.Add(input);
         await _db.SaveChangesAsync();
@@ -92,5 +94,25 @@ public class ProductsController : ControllerBase
         entity.UpdatedAt = DateTime.Now;
         await _db.SaveChangesAsync();
         return Ok(new { ok = true });
+    }
+
+    private async Task<string> NewUniqueSkuAsync()
+    {
+        for (var i = 0; i < 20; i++)
+        {
+            var sku = NumberService.NewProductSku();
+            if (!await _db.Products.IgnoreQueryFilters().AnyAsync(x => x.Sku == sku)) return sku;
+        }
+        throw new InvalidOperationException("Unable to generate unique product SKU");
+    }
+
+    private async Task<string> NewUniqueBarcodeAsync()
+    {
+        for (var i = 0; i < 20; i++)
+        {
+            var barcode = NumberService.NewProductBarcode();
+            if (!await _db.Products.IgnoreQueryFilters().AnyAsync(x => x.Barcode == barcode)) return barcode;
+        }
+        throw new InvalidOperationException("Unable to generate unique product barcode");
     }
 }

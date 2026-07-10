@@ -1,10 +1,14 @@
 namespace Futurem.Sourcing.Api.Entities;
 
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 public class Product : BaseEntity
 {
+    [MaxLength(80)]
     public string Sku { get; set; } = string.Empty;
+
+    [MaxLength(80)]
     public string Barcode { get; set; } = string.Empty;
     public string NameCn { get; set; } = string.Empty;
     public string? NameEn { get; set; }

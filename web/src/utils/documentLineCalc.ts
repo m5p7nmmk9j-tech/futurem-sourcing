@@ -51,8 +51,8 @@ function round(value: number, precision = 4) {
 
 export function calculateDocumentLine(input: DocumentLineCalcInput): DocumentLineCalcResult {
   const cartonQty = num(input.cartonQty)
-  const cartons = num(input.cartons)
-  const quantity = num(input.quantity) > 0 ? num(input.quantity) : cartonQty * cartons
+  const quantity = num(input.quantity) > 0 ? num(input.quantity) : cartonQty * num(input.cartons)
+  const cartons = num(input.cartons) > 0 ? num(input.cartons) : (cartonQty > 0 && quantity > 0 ? Math.ceil(quantity / cartonQty) : 0)
   const unitPrice = num(input.unitPrice)
   const cartonLengthCm = num(input.cartonLengthCm)
   const cartonWidthCm = num(input.cartonWidthCm)

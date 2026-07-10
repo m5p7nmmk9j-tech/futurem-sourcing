@@ -82,6 +82,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<BackupJob>().ToTable("backup_jobs");
         modelBuilder.Entity<BackupHistory>().ToTable("backup_history");
         modelBuilder.Entity<RestoreHistory>().ToTable("restore_history");
+        modelBuilder.Entity<Product>().HasIndex(x => x.Sku).IsUnique();
+        modelBuilder.Entity<Product>().HasIndex(x => x.Barcode).IsUnique();
         modelBuilder.Entity<UserAccount>().HasIndex(x => x.Username).IsUnique();
         modelBuilder.Entity<RefreshToken>().HasIndex(x => x.TokenHash);
         modelBuilder.Entity<UserSession>().HasIndex(x => x.SessionId);

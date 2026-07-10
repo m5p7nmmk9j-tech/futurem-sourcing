@@ -37,6 +37,19 @@ const manualQuantity = calculateDocumentLine({
 assert.equal(manualQuantity.quantity, 1200)
 assert.equal(manualQuantity.totalCbm, 0.1)
 
+const cartonsFromQuantity = calculateDocumentLine({
+  quantity: 1000,
+  unitPrice: 10,
+  cartonQty: 100,
+  cartons: 0,
+  cartonLengthCm: 50,
+  cartonWidthCm: 40,
+  cartonHeightCm: 5,
+})
+
+assert.equal(cartonsFromQuantity.cartons, 10)
+assert.equal(cartonsFromQuantity.totalCbm, 0.1)
+
 const summary = calculateDocumentLineSummary([
   line,
   calculateDocumentLine({
