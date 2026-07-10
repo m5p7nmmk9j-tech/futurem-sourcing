@@ -4,23 +4,37 @@
     <div class="card">
       <div class="toolbar"><el-select v-model="customerId" placeholder="按客户筛选" clearable filterable style="width:260px" @change="load"><el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" /></el-select><el-button @click="load">刷新</el-button></div>
       <el-table :data="rows" border stripe>
-        <el-table-column prop="no" label="SO单号" width="190"/><el-table-column prop="customerId" label="客户ID" width="100"/><el-table-column prop="orderDate" label="汇总日期" width="150"/><el-table-column prop="currency" label="币种" width="90"/><el-table-column prop="goodsAmount" label="货款" width="120"/><el-table-column prop="commissionFee" label="佣金" width="120"/><el-table-column prop="warehouseFee" label="仓库费" width="120"/><el-table-column prop="loadingFee" label="装柜费" width="120"/><el-table-column prop="logisticsFee" label="物流费" width="120"/><el-table-column prop="receivableAmount" label="应收金额" width="130"/><el-table-column prop="receivedAmount" label="已收金额" width="130"/><el-table-column prop="status" label="状态" width="110"/>
-        <el-table-column label="操作" width="470" fixed="right"><template #default="scope"><el-button size="small" type="success" @click="selectRow(scope.row)">明细</el-button><el-button size="small" type="warning" @click="generateReceivable(scope.row.id)">生成应收</el-button><el-button size="small" type="primary" @click="openContainerDialog(scope.row)">生成装柜</el-button><el-button size="small" @click="openEdit(scope.row)">编辑</el-button><el-button size="small" @click="copy(scope.row.id)">复制</el-button><el-button size="small" type="danger" @click="remove(scope.row.id)">删除</el-button></template></el-table-column>
+        <el-table-column label="SO单号" width="190"><template #default="scope"><el-button link type="primary" class="document-no" @click="openDocument(scope.row)">{{ scope.row.no }}</el-button></template></el-table-column>
+        <el-table-column prop="customerId" label="客户ID" width="100"/><el-table-column prop="orderDate" label="汇总日期" width="150"/><el-table-column prop="currency" label="币种" width="90"/><el-table-column prop="goodsAmount" label="货款" width="120"/><el-table-column prop="commissionFee" label="佣金" width="120"/><el-table-column prop="warehouseFee" label="仓库费" width="120"/><el-table-column prop="loadingFee" label="装柜费" width="120"/><el-table-column prop="logisticsFee" label="物流费" width="120"/><el-table-column prop="receivableAmount" label="应收金额" width="130"/><el-table-column prop="receivedAmount" label="已收金额" width="130"/><el-table-column prop="status" label="状态" width="110"/>
+        <el-table-column label="操作" width="410" fixed="right"><template #default="scope"><el-button size="small" type="warning" @click="generateReceivable(scope.row.id)">生成应收</el-button><el-button size="small" type="primary" @click="openContainerDialog(scope.row)">生成装柜</el-button><el-button size="small" @click="openDocument(scope.row)">编辑</el-button><el-button size="small" @click="copy(scope.row.id)">复制</el-button><el-button size="small" type="danger" @click="remove(scope.row.id)">删除</el-button></template></el-table-column>
       </el-table>
-      <DocumentLinesEditor v-if="selectedId" document-type="SO" :document-id="selectedId" />
     </div>
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑 SO' : '新增 SO'" width="680px">
-      <el-alert title="SO 是多个 PO 汇总后给客户收款的依据，明细可统计 CBM / KG / CTN。" type="info" show-icon style="margin-bottom:12px" />
-      <el-form label-width="110px"><el-form-item label="客户"><el-select v-model="form.customerId" filterable placeholder="选择客户" style="width:100%"><el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" /></el-select></el-form-item><el-form-item label="汇总日期"><el-date-picker v-model="form.orderDate" type="date" value-format="YYYY-MM-DD" style="width:100%" /></el-form-item><el-form-item label="币种"><el-input v-model="form.currency" /></el-form-item><el-form-item label="状态"><el-input v-model="form.status" /></el-form-item><el-form-item label="货款"><el-input-number v-model="form.goodsAmount" :min="0" style="width:100%" /></el-form-item><el-form-item label="佣金"><el-input-number v-model="form.commissionFee" :min="0" style="width:100%" /></el-form-item><el-form-item label="仓库费"><el-input-number v-model="form.warehouseFee" :min="0" style="width:100%" /></el-form-item><el-form-item label="装柜费"><el-input-number v-model="form.loadingFee" :min="0" style="width:100%" /></el-form-item><el-form-item label="物流费"><el-input-number v-model="form.logisticsFee" :min="0" style="width:100%" /></el-form-item><el-form-item label="其他费"><el-input-number v-model="form.otherFee" :min="0" style="width:100%" /></el-form-item><el-form-item label="已收金额"><el-input-number v-model="form.receivedAmount" :min="0" style="width:100%" /></el-form-item><el-form-item label="应收金额"><el-input :model-value="receivable" disabled /></el-form-item><el-form-item label="备注"><el-input v-model="form.remark" type="textarea" /></el-form-item></el-form>
-      <template #footer><el-button @click="dialogVisible=false">取消</el-button><el-button type="primary" @click="save">保存</el-button></template>
+    <el-dialog v-model="dialogVisible" :title="form.id ? `编辑 SO：${form.no || ''}` : '新增 SO'" width="92%" destroy-on-close>
+      <el-alert title="SO 是多个 PO 汇总后给客户收款的依据，明细可统计 CBM / KG / CTN。保存主单后即可添加商品明细。" type="info" show-icon style="margin-bottom:12px" />
+      <el-form label-width="110px">
+        <el-row :gutter="16">
+          <el-col :span="12"><el-form-item label="客户"><el-select v-model="form.customerId" filterable placeholder="选择客户" style="width:100%"><el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" /></el-select></el-form-item></el-col>
+          <el-col :span="12"><el-form-item label="汇总日期"><el-date-picker v-model="form.orderDate" type="date" value-format="YYYY-MM-DD" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="币种"><el-input v-model="form.currency" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="状态"><el-input v-model="form.status" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="货款"><el-input-number v-model="form.goodsAmount" :min="0" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="佣金"><el-input-number v-model="form.commissionFee" :min="0" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="仓库费"><el-input-number v-model="form.warehouseFee" :min="0" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="装柜费"><el-input-number v-model="form.loadingFee" :min="0" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="物流费"><el-input-number v-model="form.logisticsFee" :min="0" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="其他费"><el-input-number v-model="form.otherFee" :min="0" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="已收金额"><el-input-number v-model="form.receivedAmount" :min="0" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="应收金额"><el-input :model-value="receivable" disabled /></el-form-item></el-col>
+          <el-col :span="24"><el-form-item label="备注"><el-input v-model="form.remark" type="textarea" /></el-form-item></el-col>
+        </el-row>
+      </el-form>
+      <DocumentLinesEditor v-if="form.id" document-type="SO" :document-id="form.id" />
+      <template #footer><el-button @click="dialogVisible=false">关闭</el-button><el-button type="primary" @click="save">保存主单</el-button></template>
     </el-dialog>
 
     <el-dialog v-model="containerDialogVisible" title="生成装柜单" width="520px">
       <el-alert title="从 SO 生成装柜单，会复制 SO 全部明细，并汇总箱数、CBM、KG。" type="info" show-icon style="margin-bottom:12px" />
-      <el-form label-width="100px">
-        <el-form-item label="柜型"><el-select v-model="containerForm.containerType" style="width:100%"><el-option label="20GP" value="20GP"/><el-option label="40GP" value="40GP"/><el-option label="40HQ" value="40HQ"/><el-option label="45HQ" value="45HQ"/></el-select></el-form-item>
-        <el-form-item label="装柜日期"><el-date-picker v-model="containerForm.loadDate" type="date" value-format="YYYY-MM-DD" style="width:100%" /></el-form-item>
-      </el-form>
+      <el-form label-width="100px"><el-form-item label="柜型"><el-select v-model="containerForm.containerType" style="width:100%"><el-option label="20GP" value="20GP"/><el-option label="40GP" value="40GP"/><el-option label="40HQ" value="40HQ"/><el-option label="45HQ" value="45HQ"/></el-select></el-form-item><el-form-item label="装柜日期"><el-date-picker v-model="containerForm.loadDate" type="date" value-format="YYYY-MM-DD" style="width:100%" /></el-form-item></el-form>
       <template #footer><el-button @click="containerDialogVisible=false">取消</el-button><el-button type="primary" @click="generateContainer">生成装柜单</el-button></template>
     </el-dialog>
   </div>
@@ -32,19 +46,22 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '../api/http'
 import DocumentLinesEditor from '../components/DocumentLinesEditor.vue'
 const router = useRouter()
-const rows=ref<any[]>([]), customers=ref<any[]>([]), customerId=ref<number|null>(null), dialogVisible=ref(false), containerDialogVisible=ref(false), selectedId=ref<number|null>(null), selectedSoId=ref<number|null>(null)
-const form=reactive<any>({id:0,customerId:null,orderDate:'',currency:'RMB',status:'draft',goodsAmount:0,commissionFee:0,warehouseFee:0,loadingFee:0,logisticsFee:0,otherFee:0,receivedAmount:0,remark:''})
+const rows=ref<any[]>([]), customers=ref<any[]>([]), customerId=ref<number|null>(null), dialogVisible=ref(false), containerDialogVisible=ref(false), selectedSoId=ref<number|null>(null)
+const form=reactive<any>({id:0,no:'',customerId:null,orderDate:'',currency:'RMB',status:'draft',goodsAmount:0,commissionFee:0,warehouseFee:0,loadingFee:0,logisticsFee:0,otherFee:0,receivedAmount:0,remark:''})
 const containerForm=reactive<any>({containerType:'40HQ',loadDate:''})
 const receivable=computed(()=>Number(form.goodsAmount||0)+Number(form.commissionFee||0)+Number(form.warehouseFee||0)+Number(form.loadingFee||0)+Number(form.logisticsFee||0)+Number(form.otherFee||0))
 async function loadCustomers(){customers.value=(await http.get('/customers')).data}
-async function load(){const params:any={}; if(customerId.value)params.customerId=customerId.value; rows.value=(await http.get('/summary-orders',{params})).data; if(!selectedId.value&&rows.value.length)selectedId.value=rows.value[0].id}
-function reset(){Object.assign(form,{id:0,customerId:null,orderDate:'',currency:'RMB',status:'draft',goodsAmount:0,commissionFee:0,warehouseFee:0,loadingFee:0,logisticsFee:0,otherFee:0,receivedAmount:0,remark:''})}
-function openCreate(){reset();dialogVisible.value=true} function openEdit(row:any){Object.assign(form,row);dialogVisible.value=true} function selectRow(row:any){selectedId.value=row.id}
+async function load(){const params:any={}; if(customerId.value)params.customerId=customerId.value; rows.value=(await http.get('/summary-orders',{params})).data}
+function reset(){Object.assign(form,{id:0,no:'',customerId:null,orderDate:'',currency:'RMB',status:'draft',goodsAmount:0,commissionFee:0,warehouseFee:0,loadingFee:0,logisticsFee:0,otherFee:0,receivedAmount:0,remark:''})}
+function openCreate(){reset();dialogVisible.value=true} function openDocument(row:any){Object.assign(form,row);dialogVisible.value=true}
 function openContainerDialog(row:any){selectedSoId.value=row.id; Object.assign(containerForm,{containerType:'40HQ',loadDate:''}); containerDialogVisible.value=true}
-async function save(){if(!form.customerId)return ElMessage.warning('请选择客户'); const res=form.id?await http.put(`/summary-orders/${form.id}`,form):await http.post('/summary-orders',form); dialogVisible.value=false; ElMessage.success('保存成功'); await load(); selectedId.value=res.data?.id||form.id||selectedId.value}
+async function save(){if(!form.customerId)return ElMessage.warning('请选择客户'); const res=form.id?await http.put(`/summary-orders/${form.id}`,form):await http.post('/summary-orders',form); if(res.data)Object.assign(form,res.data); ElMessage.success('主单保存成功'); await load()}
 async function copy(id:number){await http.post(`/summary-orders/${id}/copy`); ElMessage.success('复制成功'); await load()}
 async function generateContainer(){if(!selectedSoId.value)return; const res=await http.post('/container-loads/generate-from-so',{summaryOrderId:selectedSoId.value,containerType:containerForm.containerType,loadDate:containerForm.loadDate}); containerDialogVisible.value=false; ElMessage.success(`已生成装柜单：${res.data?.no||''}`); await router.push({path:'/container-loads',query:{id:res.data?.id,summaryOrderId:selectedSoId.value}})}
 async function generateReceivable(id:number){const res=await http.post(`/summary-orders/${id}/generate-receivable`); ElMessage.success(`已生成应收：${res.data?.no||''}`); await load()}
-async function remove(id:number){await ElMessageBox.confirm('确认删除该 SO？','提示'); await http.delete(`/summary-orders/${id}`); if(selectedId.value===id)selectedId.value=null; ElMessage.success('已删除'); await load()}
+async function remove(id:number){await ElMessageBox.confirm('确认删除该 SO？','提示'); await http.delete(`/summary-orders/${id}`); ElMessage.success('已删除'); await load()}
 onMounted(async()=>{await loadCustomers();await load()})
 </script>
+<style scoped>
+.document-no { font-weight: 700; }
+</style>
