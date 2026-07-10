@@ -28,6 +28,7 @@ public class DocumentLinesController : ControllerBase
         var lines = await _db.DocumentLines
             .Where(x => x.DocumentType == documentType && x.DocumentId == documentId)
             .ToListAsync();
+        foreach (var line in lines) Calculate(line);
 
         return new
         {
@@ -93,8 +94,9 @@ public class DocumentLinesController : ControllerBase
 
     private static void Calculate(DocumentLine line)
     {
+        if (line.CartonQty > 0 && line.Cartons > 0 && line.Quantity <= 0) line.Quantity = line.CartonQty * line.Cartons;
+        if (line.CartonQty > 0 && line.Cartons <= 0 && line.Quantity > 0) line.Cartons = Math.Ceiling(line.Quantity / line.CartonQty);
         line.Amount = line.Quantity * line.UnitPrice;
-        if (line.CartonQty > 0 && line.Cartons <= 0) line.Cartons = Math.Ceiling(line.Quantity / line.CartonQty);
         line.CartonCbm = line.CartonLengthCm * line.CartonWidthCm * line.CartonHeightCm / 1000000m;
         line.TotalCbm = line.CartonCbm * line.Cartons;
         line.TotalGwKg = line.CartonGwKg * line.Cartons;
