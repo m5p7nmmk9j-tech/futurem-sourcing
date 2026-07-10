@@ -27,13 +27,11 @@ public class DatabaseUpgradeService
 
     public async Task UpgradeAsync()
     {
-        var history = new MigrationHistory { MigrationName = "startup-auto-upgrade", Version = TargetVersion, StartedAt = DateTime.Now, Status = "running", CreatedAt = DateTime.Now };
+        List<string> pending = [];
+        MigrationHistory? history = null;
         try
         {
-            _db.MigrationHistories.Add(history);
-            await _db.SaveChangesAsync();
-
-            var pending = (await _db.Database.GetPendingMigrationsAsync()).ToList();
+            pending = (await _db.Database.GetPendingMigrationsAsync()).ToList();
             if (pending.Count > 0)
             {
                 _logger.LogInformation("Applying {Count} pending migrations", pending.Count);
@@ -45,6 +43,10 @@ public class DatabaseUpgradeService
                 await _db.Database.EnsureCreatedAsync();
             }
 
+            history = new MigrationHistory { MigrationName = "startup-auto-upgrade", Version = TargetVersion, StartedAt = DateTime.Now, Status = "running", CreatedAt = DateTime.Now };
+            _db.MigrationHistories.Add(history);
+            await _db.SaveChangesAsync();
+
             var oldVersions = await _db.SchemaVersions.Where(x => x.Status == "current").ToListAsync();
             foreach (var old in oldVersions) old.Status = "archived";
             _db.SchemaVersions.Add(new SchemaVersion { Version = TargetVersion, Status = "current", AppliedAt = DateTime.Now, Notes = "FUTUREM Enterprise V1.0 schema", CreatedAt = DateTime.Now });
@@ -55,10 +57,13 @@ public class DatabaseUpgradeService
         }
         catch (Exception ex)
         {
-            history.Status = "failed";
-            history.FinishedAt = DateTime.Now;
-            history.Message = ex.Message;
-            try { await _db.SaveChangesAsync(); } catch { /* ignore logging failure */ }
+            if (history is not null)
+            {
+                history.Status = "failed";
+                history.FinishedAt = DateTime.Now;
+                history.Message = ex.Message;
+                try { await _db.SaveChangesAsync(); } catch { /* ignore logging failure */ }
+            }
             throw;
         }
     }
