@@ -19,6 +19,10 @@
 
     <el-table :data="displayRows" border stripe size="small">
       <el-table-column prop="sku" label="SKU" width="130" />
+      <el-table-column prop="barcode" label="条码" width="145" />
+      <el-table-column label="条码图片" width="190" align="center">
+        <template #default="scope"><BarcodeImage :value="scope.row.barcode" :height="34" :width="1.15" /></template>
+      </el-table-column>
       <el-table-column prop="productName" label="商品" min-width="180" />
       <el-table-column prop="quantity" label="数量" width="90" />
       <el-table-column prop="unit" label="单位" width="80" />
@@ -40,9 +44,11 @@
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑明细' : '新增明细'" width="920px">
       <el-form label-width="105px">
         <el-row :gutter="12">
-          <el-col :span="12"><el-form-item label="商品"><div class="select-with-action"><el-select v-model="form.productId" filterable clearable style="width:100%" @change="selectProduct"><el-option v-for="p in products" :key="p.id" :label="`${p.sku} / ${p.nameCn}`" :value="p.id" /></el-select><el-button @click="openProductDialog">新增</el-button></div></el-form-item></el-col>
+          <el-col :span="12"><el-form-item label="商品"><div class="select-with-action"><el-select v-model="form.productId" filterable clearable style="width:100%" @change="selectProduct"><el-option v-for="p in products" :key="p.id" :label="`${p.sku} / ${p.nameCn} / ${p.barcode || '无条码'}`" :value="p.id" /></el-select><el-button @click="openProductDialog">新增</el-button></div></el-form-item></el-col>
           <el-col :span="12"><el-form-item label="名称"><el-input v-model="form.productName" /></el-form-item></el-col>
           <el-col :span="8"><el-form-item label="SKU"><el-input v-model="form.sku" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="条码"><el-input v-model="form.barcode" disabled /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="条码图片"><BarcodeImage :value="form.barcode" :height="32" :width="1.1" /></el-form-item></el-col>
           <el-col :span="8"><el-form-item label="单价"><el-input-number v-model="form.unitPrice" :min="0" :precision="4" style="width:100%" /></el-form-item></el-col>
           <el-col :span="8"><el-form-item label="单位"><el-input v-model="form.unit" /></el-form-item></el-col>
           <el-col :span="8"><el-form-item label="单箱数量"><el-input-number v-model="form.cartonQty" :min="0" :precision="2" style="width:100%" @change="syncQuantityFromPacking" /></el-form-item></el-col>
@@ -68,6 +74,8 @@
         <el-row :gutter="12">
           <el-col :span="12"><el-form-item label="中文名"><el-input v-model="productForm.nameCn" /></el-form-item></el-col>
           <el-col :span="12"><el-form-item label="英文名"><el-input v-model="productForm.nameEn" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item label="条码"><el-input v-model="productForm.barcode" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item label="条码预览"><BarcodeImage :value="productForm.barcode" :height="32" :width="1.1" /></el-form-item></el-col>
           <el-col :span="8"><el-form-item label="单位"><el-input v-model="productForm.unit" /></el-form-item></el-col>
           <el-col :span="8"><el-form-item label="采购价"><el-input-number v-model="productForm.purchasePrice" :min="0" :precision="4" style="width:100%" /></el-form-item></el-col>
           <el-col :span="8"><el-form-item label="单箱数量"><el-input-number v-model="productForm.cartonQty" :min="0" :precision="2" style="width:100%" /></el-form-item></el-col>
@@ -91,6 +99,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '../api/http'
+import BarcodeImage from './BarcodeImage.vue'
 import { applyProductDefaultsToLine, calculateDocumentLine, calculateDocumentLineSummary } from '../utils/documentLineCalc'
 
 const props = defineProps<{ documentType: string, documentId: number | null }>()
@@ -99,8 +108,8 @@ const products = ref<any[]>([])
 const summary = ref<any>({})
 const dialogVisible = ref(false)
 const productDialogVisible = ref(false)
-const form = reactive<any>({ id: 0, documentType: '', documentId: 0, productId: null, sku: '', productName: '', unit: 'PCS', quantity: 0, unitPrice: 0, cartonQty: 0, cartons: 0, cartonLengthCm: 0, cartonWidthCm: 0, cartonHeightCm: 0, cartonGwKg: 0, cartonNwKg: 0, sortNo: 0, remark: '' })
-const productForm = reactive<any>({ nameCn: '', nameEn: '', unit: 'PCS', purchasePrice: 0, cartonQty: 0, cartonLengthCm: 0, cartonWidthCm: 0, cartonHeightCm: 0, cartonGwKg: 0, cartonNwKg: 0, customerItemNo: '', imageUrl: '', remark: '' })
+const form = reactive<any>({ id: 0, documentType: '', documentId: 0, productId: null, sku: '', barcode: '', productName: '', unit: 'PCS', quantity: 0, unitPrice: 0, cartonQty: 0, cartons: 0, cartonLengthCm: 0, cartonWidthCm: 0, cartonHeightCm: 0, cartonGwKg: 0, cartonNwKg: 0, sortNo: 0, remark: '' })
+const productForm = reactive<any>({ nameCn: '', nameEn: '', barcode: '', unit: 'PCS', purchasePrice: 0, cartonQty: 0, cartonLengthCm: 0, cartonWidthCm: 0, cartonHeightCm: 0, cartonGwKg: 0, cartonNwKg: 0, customerItemNo: '', imageUrl: '', remark: '' })
 
 const displayRows = computed(() => rows.value.map(withCalculatedTotals))
 const displaySummary = computed(() => calculateDocumentLineSummary(displayRows.value))
@@ -108,16 +117,19 @@ const formTotals = computed(() => calculateDocumentLine(form))
 
 async function loadProducts() { products.value = (await http.get('/products')).data }
 async function load() { if (!props.documentId) return; rows.value = (await http.get('/document-lines', { params: { documentType: props.documentType, documentId: props.documentId } })).data; summary.value = (await http.get('/document-lines/summary', { params: { documentType: props.documentType, documentId: props.documentId } })).data }
-function reset() { Object.assign(form, { id: 0, documentType: props.documentType, documentId: props.documentId, productId: null, sku: '', productName: '', unit: 'PCS', quantity: 0, unitPrice: 0, cartonQty: 0, cartons: 0, cartonLengthCm: 0, cartonWidthCm: 0, cartonHeightCm: 0, cartonGwKg: 0, cartonNwKg: 0, sortNo: rows.value.length + 1, remark: '' }) }
+function reset() { Object.assign(form, { id: 0, documentType: props.documentType, documentId: props.documentId, productId: null, sku: '', barcode: '', productName: '', unit: 'PCS', quantity: 0, unitPrice: 0, cartonQty: 0, cartons: 0, cartonLengthCm: 0, cartonWidthCm: 0, cartonHeightCm: 0, cartonGwKg: 0, cartonNwKg: 0, sortNo: rows.value.length + 1, remark: '' }) }
 function selectProduct(id: number) {
   const p = products.value.find(x => x.id === id)
-  if (p) Object.assign(form, applyProductDefaultsToLine({ ...form, sku: p.sku, customerItemNo: p.customerItemNo }, p))
+  if (p) Object.assign(form, applyProductDefaultsToLine({ ...form, sku: p.sku, barcode: p.barcode || '', customerItemNo: p.customerItemNo }, p))
 }
 function openCreate() { if (!props.documentId) return ElMessage.warning('请先保存主单'); reset(); dialogVisible.value = true }
 function openEdit(row: any) { Object.assign(form, row); dialogVisible.value = true }
 function syncQuantityFromPacking() { if (Number(form.cartonQty || 0) > 0 && Number(form.cartons || 0) > 0) form.quantity = Number(form.cartonQty || 0) * Number(form.cartons || 0) }
-function withCalculatedTotals(line: any) { return { ...line, ...calculateDocumentLine(line) } }
-function openProductDialog() { Object.assign(productForm, { nameCn: form.productName || '', nameEn: '', unit: form.unit || 'PCS', purchasePrice: form.unitPrice || 0, cartonQty: form.cartonQty || 0, cartonLengthCm: form.cartonLengthCm || 0, cartonWidthCm: form.cartonWidthCm || 0, cartonHeightCm: form.cartonHeightCm || 0, cartonGwKg: form.cartonGwKg || 0, cartonNwKg: form.cartonNwKg || 0, customerItemNo: form.customerItemNo || '', imageUrl: form.imageUrl || '', remark: '' }); productDialogVisible.value = true }
+function withCalculatedTotals(line: any) {
+  const product = products.value.find(x => x.id === line.productId)
+  return { ...line, barcode: line.barcode || product?.barcode || '', ...calculateDocumentLine(line) }
+}
+function openProductDialog() { Object.assign(productForm, { nameCn: form.productName || '', nameEn: '', barcode: form.barcode || '', unit: form.unit || 'PCS', purchasePrice: form.unitPrice || 0, cartonQty: form.cartonQty || 0, cartonLengthCm: form.cartonLengthCm || 0, cartonWidthCm: form.cartonWidthCm || 0, cartonHeightCm: form.cartonHeightCm || 0, cartonGwKg: form.cartonGwKg || 0, cartonNwKg: form.cartonNwKg || 0, customerItemNo: form.customerItemNo || '', imageUrl: form.imageUrl || '', remark: '' }); productDialogVisible.value = true }
 function selectProductImage(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
