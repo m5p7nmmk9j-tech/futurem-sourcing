@@ -8,7 +8,7 @@ public class SummaryOrder : BaseEntity
     public long? BuyingTripId { get; set; }
     public long CustomerId { get; set; }
     public DateTime? OrderDate { get; set; }
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "RMB";
     public string Status { get; set; } = "draft";
 
     [Column(TypeName = "decimal(18,4)")]

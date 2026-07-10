@@ -13,7 +13,7 @@ public class Payment : BaseEntity
     public long? CustomerId { get; set; }
     public long? SupplierId { get; set; }
     public string PaymentMethod { get; set; } = "bank";
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "RMB";
 
     [Column(TypeName = "decimal(18,4)")]
     public decimal Amount { get; set; }

@@ -9,7 +9,7 @@ public class PurchaseOrder : BaseEntity
     public long? CustomerId { get; set; }
     public DateTime? OrderDate { get; set; }
     public DateTime? ExpectedDeliveryDate { get; set; }
-    public string Currency { get; set; } = "CNY";
+    public string Currency { get; set; } = "RMB";
     public string Status { get; set; } = "draft";
     public string PayStatus { get; set; } = "unpaid";
 }

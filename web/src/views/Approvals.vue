@@ -47,12 +47,12 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '../api/http'
 const rows=ref<any[]>([]), status=ref<string|null>(null), targetType=ref<string|null>(null), dialogVisible=ref(false), detailVisible=ref(false)
-const form=reactive<any>({approvalType:'purchase',targetType:'PO',targetId:0,title:'',amount:0,currency:'USD',remark:''})
+const form=reactive<any>({approvalType:'purchase',targetType:'PO',targetId:0,title:'',amount:0,currency:'RMB',remark:''})
 const detail=ref<any>({})
 function statusName(s:string){return ({draft:'草稿',submitted:'已提交',approving:'审批中',approved:'已通过',rejected:'已驳回',returned:'已退回'} as any)[s]||s}
 function statusType(s:string){return s==='approved'?'success':s==='rejected'?'danger':s==='returned'?'warning':s==='draft'?'info':'primary'}
 async function load(){const params:any={}; if(status.value)params.status=status.value; if(targetType.value)params.targetType=targetType.value; rows.value=(await http.get('/approvals',{params})).data}
-function reset(){Object.assign(form,{approvalType:'purchase',targetType:'PO',targetId:0,title:'',amount:0,currency:'USD',remark:''})}
+function reset(){Object.assign(form,{approvalType:'purchase',targetType:'PO',targetId:0,title:'',amount:0,currency:'RMB',remark:''})}
 function openCreate(){reset();dialogVisible.value=true}
 async function save(){if(!form.title)return ElMessage.warning('请输入标题'); await http.post('/approvals',form); dialogVisible.value=false; ElMessage.success('保存成功'); await load()}
 async function view(row:any){detail.value=(await http.get(`/approvals/${row.id}`)).data; detailVisible.value=true}

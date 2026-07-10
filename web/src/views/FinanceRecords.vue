@@ -100,13 +100,13 @@ const rows=ref<any[]>([]), customers=ref<any[]>([]), suppliers=ref<any[]>([]), a
 const summary=ref<any>({}), aging=ref<any>({}), profit=ref<any>({})
 const recordType=ref<string|null>(null), customerId=ref<number|null>(null), supplierId=ref<number|null>(null), dialogVisible=ref(false), paymentDialog=ref(false)
 const agingType=ref('receivable'), balanceType=ref('receivable')
-const form=reactive<any>({id:0,recordType:'receivable',targetType:'MANUAL',targetId:0,customerId:null,supplierId:null,currency:'USD',amount:0,paidAmount:0,recordDate:'',status:'pending',remark:''})
-const payment=reactive<any>({direction:'receive',financeRecordId:0,bankAccountId:null,targetType:'',targetId:0,customerId:null,supplierId:null,paymentMethod:'bank',currency:'USD',amount:0,exchangeRate:1,feeAmount:0,paymentDate:'',attachmentUrl:'',remark:''})
+const form=reactive<any>({id:0,recordType:'receivable',targetType:'MANUAL',targetId:0,customerId:null,supplierId:null,currency:'RMB',amount:0,paidAmount:0,recordDate:'',status:'pending',remark:''})
+const payment=reactive<any>({direction:'receive',financeRecordId:0,bankAccountId:null,targetType:'',targetId:0,customerId:null,supplierId:null,paymentMethod:'bank',currency:'RMB',amount:0,exchangeRate:1,feeAmount:0,paymentDate:'',attachmentUrl:'',remark:''})
 async function loadCustomers(){customers.value=(await http.get('/customers')).data} async function loadSuppliers(){suppliers.value=(await http.get('/suppliers')).data} async function loadAccounts(){accounts.value=(await http.get('/bank-accounts')).data}
 async function load(){const params:any={}; if(recordType.value)params.recordType=recordType.value; if(customerId.value)params.customerId=customerId.value; if(supplierId.value)params.supplierId=supplierId.value; rows.value=(await http.get('/finance-records',{params})).data; await loadAnalytics()}
 async function loadAnalytics(){summary.value=(await http.get('/finance-records/summary')).data; profit.value=(await http.get('/finance-records/profit-summary')).data; aging.value=(await http.get('/finance-records/aging',{params:{recordType:agingType.value}})).data; await loadBalances()}
 async function loadBalances(){balances.value=(await http.get('/finance-records/partner-balances',{params:{recordType:balanceType.value}})).data}
-function reset(){Object.assign(form,{id:0,recordType:'receivable',targetType:'MANUAL',targetId:0,customerId:null,supplierId:null,currency:'USD',amount:0,paidAmount:0,recordDate:'',status:'pending',remark:''})}
+function reset(){Object.assign(form,{id:0,recordType:'receivable',targetType:'MANUAL',targetId:0,customerId:null,supplierId:null,currency:'RMB',amount:0,paidAmount:0,recordDate:'',status:'pending',remark:''})}
 function openCreate(){reset();dialogVisible.value=true} function openEdit(row:any){Object.assign(form,row);dialogVisible.value=true}
 async function save(){if(!form.recordType)return ElMessage.warning('请选择类型'); form.id?await http.put(`/finance-records/${form.id}`,form):await http.post('/finance-records',form); dialogVisible.value=false; ElMessage.success('保存成功'); await load()}
 async function remove(id:number){await ElMessageBox.confirm('确认删除该财务记录？','提示'); await http.delete(`/finance-records/${id}`); ElMessage.success('已删除'); await load()}

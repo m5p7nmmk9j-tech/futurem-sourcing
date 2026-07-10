@@ -12,7 +12,7 @@ public class Customer : BaseEntity
     public string? Phone { get; set; }
     public string? Whatsapp { get; set; }
     public string? Email { get; set; }
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "RMB";
     [Column(TypeName = "decimal(18,4)")]
     public decimal CreditLimit { get; set; }
     public int CreditDays { get; set; }

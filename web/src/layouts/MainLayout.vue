@@ -2,7 +2,14 @@
   <el-container class="layout">
     <el-aside width="240px" class="aside">
       <div class="brand">FUTUREM Sourcing</div>
-      <el-menu router default-active="/" class="menu">
+      <el-menu
+        router
+        default-active="/"
+        class="menu"
+        background-color="#f8fbff"
+        text-color="#334155"
+        active-text-color="#1d4ed8"
+      >
         <el-menu-item index="/">Dashboard</el-menu-item>
         <el-menu-item index="/bi-reports">BI 经营分析</el-menu-item>
         <el-menu-item index="/message-center">消息中心</el-menu-item>
@@ -100,7 +107,7 @@ function go(row:any){ searchVisible.value=false; if(row.route) router.push(row.r
 <style scoped>
 .layout { height: 100vh; background: #f5f7fb; }
 .aside {
-  background: linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%);
+  background: #f8fbff !important;
   border-right: 1px solid #dbe7f6;
   box-shadow: 8px 0 24px rgba(37, 99, 235, 0.08);
   color: #1f2937;
@@ -120,24 +127,29 @@ function go(row:any){ searchVisible.value=false; if(row.route) router.push(row.r
   box-shadow: 0 12px 26px rgba(37, 99, 235, .22);
 }
 .menu {
+  --el-menu-bg-color: #f8fbff;
+  --el-menu-text-color: #334155;
+  --el-menu-active-color: #1d4ed8;
+  --el-menu-hover-bg-color: #e0efff;
   border-right: 0;
   padding: 4px 12px 18px;
-  background: transparent;
+  background: #f8fbff !important;
 }
 .menu :deep(.el-menu-item) {
   height: 40px;
   margin: 4px 0;
   border-radius: 12px;
-  color: #475569;
+  background: transparent !important;
+  color: #334155 !important;
   font-weight: 600;
 }
 .menu :deep(.el-menu-item:hover) {
-  background: #e0efff;
-  color: #1d4ed8;
+  background: #e0efff !important;
+  color: #1d4ed8 !important;
 }
 .menu :deep(.el-menu-item.is-active) {
-  background: #2563eb;
-  color: #fff;
+  background: #e8f1ff !important;
+  color: #1d4ed8 !important;
   box-shadow: 0 10px 18px rgba(37, 99, 235, .22);
 }
 .header { display: flex; align-items: center; justify-content: space-between; background: #fff; border-bottom: 1px solid #e5e7eb; }

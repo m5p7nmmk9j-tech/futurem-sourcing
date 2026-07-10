@@ -31,12 +31,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '../api/http'
 import DocumentLinesEditor from '../components/DocumentLinesEditor.vue'
 const rows=ref<any[]>([]), customers=ref<any[]>([]), customerId=ref<number|null>(null), dialogVisible=ref(false), containerDialogVisible=ref(false), selectedId=ref<number|null>(null), selectedSoId=ref<number|null>(null)
-const form=reactive<any>({id:0,customerId:null,orderDate:'',currency:'USD',status:'draft',goodsAmount:0,commissionFee:0,warehouseFee:0,loadingFee:0,logisticsFee:0,otherFee:0,receivedAmount:0,remark:''})
+const form=reactive<any>({id:0,customerId:null,orderDate:'',currency:'RMB',status:'draft',goodsAmount:0,commissionFee:0,warehouseFee:0,loadingFee:0,logisticsFee:0,otherFee:0,receivedAmount:0,remark:''})
 const containerForm=reactive<any>({containerType:'40HQ',loadDate:''})
 const receivable=computed(()=>Number(form.goodsAmount||0)+Number(form.commissionFee||0)+Number(form.warehouseFee||0)+Number(form.loadingFee||0)+Number(form.logisticsFee||0)+Number(form.otherFee||0))
 async function loadCustomers(){customers.value=(await http.get('/customers')).data}
 async function load(){const params:any={}; if(customerId.value)params.customerId=customerId.value; rows.value=(await http.get('/summary-orders',{params})).data; if(!selectedId.value&&rows.value.length)selectedId.value=rows.value[0].id}
-function reset(){Object.assign(form,{id:0,customerId:null,orderDate:'',currency:'USD',status:'draft',goodsAmount:0,commissionFee:0,warehouseFee:0,loadingFee:0,logisticsFee:0,otherFee:0,receivedAmount:0,remark:''})}
+function reset(){Object.assign(form,{id:0,customerId:null,orderDate:'',currency:'RMB',status:'draft',goodsAmount:0,commissionFee:0,warehouseFee:0,loadingFee:0,logisticsFee:0,otherFee:0,receivedAmount:0,remark:''})}
 function openCreate(){reset();dialogVisible.value=true} function openEdit(row:any){Object.assign(form,row);dialogVisible.value=true} function selectRow(row:any){selectedId.value=row.id}
 function openContainerDialog(row:any){selectedSoId.value=row.id; Object.assign(containerForm,{containerType:'40HQ',loadDate:''}); containerDialogVisible.value=true}
 async function save(){if(!form.customerId)return ElMessage.warning('请选择客户'); const res=form.id?await http.put(`/summary-orders/${form.id}`,form):await http.post('/summary-orders',form); dialogVisible.value=false; ElMessage.success('保存成功'); await load(); selectedId.value=res.data?.id||form.id||selectedId.value}

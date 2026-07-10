@@ -72,17 +72,17 @@ import { http } from '../api/http'
 import DocumentLinesEditor from '../components/DocumentLinesEditor.vue'
 const rows=ref<any[]>([]), suppliers=ref<any[]>([]), customers=ref<any[]>([]), selectedRows=ref<any[]>([])
 const supplierId=ref<number|null>(null), customerId=ref<number|null>(null), dialogVisible=ref(false), soDialogVisible=ref(false), supplierDialogVisible=ref(false), customerDialogVisible=ref(false), selectedId=ref<number|null>(null)
-const form=reactive<any>({id:0,supplierId:null,customerId:null,customerOrderId:null,orderDate:'',expectedDeliveryDate:'',currency:'CNY',status:'draft',payStatus:'unpaid',remark:''})
-const soForm=reactive<any>({customerId:null,currency:'USD'})
+const form=reactive<any>({id:0,supplierId:null,customerId:null,customerOrderId:null,orderDate:'',expectedDeliveryDate:'',currency:'RMB',status:'draft',payStatus:'unpaid',remark:''})
+const soForm=reactive<any>({customerId:null,currency:'RMB'})
 const supplierForm=reactive<any>({name:'',shopNo:'',mainProducts:'',contactName:'',phone:'',whatsapp:'',remark:''})
-const customerForm=reactive<any>({name:'',country:'',port:'',contactName:'',phone:'',whatsapp:'',currency:'USD',remark:''})
+const customerForm=reactive<any>({name:'',country:'',port:'',contactName:'',phone:'',whatsapp:'',currency:'RMB',remark:''})
 async function loadSuppliers(){suppliers.value=(await http.get('/suppliers')).data} async function loadCustomers(){customers.value=(await http.get('/customers')).data}
 async function load(){const params:any={}; if(supplierId.value)params.supplierId=supplierId.value; if(customerId.value)params.customerId=customerId.value; rows.value=(await http.get('/purchase-orders',{params})).data; if(!selectedId.value&&rows.value.length)selectedId.value=rows.value[0].id}
-function reset(){Object.assign(form,{id:0,supplierId:null,customerId:null,customerOrderId:null,orderDate:'',expectedDeliveryDate:'',currency:'CNY',status:'draft',payStatus:'unpaid',remark:''})}
+function reset(){Object.assign(form,{id:0,supplierId:null,customerId:null,customerOrderId:null,orderDate:'',expectedDeliveryDate:'',currency:'RMB',status:'draft',payStatus:'unpaid',remark:''})}
 function openCreate(){reset();dialogVisible.value=true} function openEdit(row:any){Object.assign(form,row);dialogVisible.value=true} function selectRow(row:any){selectedId.value=row.id} function selectionChange(rows:any[]){selectedRows.value=rows}
-function openSoDialog(){if(!selectedRows.value.length)return ElMessage.warning('请先勾选 PO'); const first=selectedRows.value.find(x=>x.customerId); Object.assign(soForm,{customerId:first?.customerId||null,currency:'USD'}); soDialogVisible.value=true}
+function openSoDialog(){if(!selectedRows.value.length)return ElMessage.warning('请先勾选 PO'); const first=selectedRows.value.find(x=>x.customerId); Object.assign(soForm,{customerId:first?.customerId||null,currency:'RMB'}); soDialogVisible.value=true}
 function openSupplierDialog(){Object.assign(supplierForm,{name:'',shopNo:'',mainProducts:'',contactName:'',phone:'',whatsapp:'',remark:''}); supplierDialogVisible.value=true}
-function openCustomerDialog(){Object.assign(customerForm,{name:'',country:'',port:'',contactName:'',phone:'',whatsapp:'',currency:'USD',remark:''}); customerDialogVisible.value=true}
+function openCustomerDialog(){Object.assign(customerForm,{name:'',country:'',port:'',contactName:'',phone:'',whatsapp:'',currency:'RMB',remark:''}); customerDialogVisible.value=true}
 async function save(){if(!form.supplierId)return ElMessage.warning('请选择供应商'); const res=form.id?await http.put(`/purchase-orders/${form.id}`,form):await http.post('/purchase-orders',form); dialogVisible.value=false; ElMessage.success('保存成功'); await load(); selectedId.value=res.data?.id||form.id||selectedId.value}
 async function saveSupplier(){if(!supplierForm.name)return ElMessage.warning('请输入供应商名称'); const res=await http.post('/suppliers',supplierForm); await loadSuppliers(); form.supplierId=res.data.id; supplierDialogVisible.value=false; ElMessage.success('供应商已新增')}
 async function saveCustomer(){if(!customerForm.name)return ElMessage.warning('请输入客户名称'); const res=await http.post('/customers',customerForm); await loadCustomers(); form.customerId=res.data.id; customerDialogVisible.value=false; ElMessage.success('客户已新增')}

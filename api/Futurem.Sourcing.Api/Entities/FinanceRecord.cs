@@ -10,7 +10,7 @@ public class FinanceRecord : BaseEntity
     public long TargetId { get; set; }
     public long? CustomerId { get; set; }
     public long? SupplierId { get; set; }
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "RMB";
 
     [Column(TypeName = "decimal(18,4)")]
     public decimal Amount { get; set; }

@@ -80,7 +80,7 @@ public class RfqsController : ControllerBase
             CustomerId = source.CustomerId,
             RfqId = source.Id,
             OrderDate = DateTime.Today,
-            Currency = "USD",
+            Currency = "RMB",
             Status = "draft",
             Remark = $"由 RFQ {source.No} 生成",
             CreatedAt = DateTime.Now

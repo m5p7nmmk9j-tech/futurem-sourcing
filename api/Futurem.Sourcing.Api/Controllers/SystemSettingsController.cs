@@ -101,9 +101,8 @@ public class SystemSettingsController : ControllerBase
         {
             ("company", "company.name", "FUTUREM", "text", "公司名称"),
             ("company", "company.logo", "", "text", "公司Logo地址"),
-            ("currency", "currency.base", "USD", "text", "本位币"),
-            ("currency", "rate.USD.CNY", "7.20", "number", "美元兑人民币"),
-            ("currency", "rate.USD.MXN", "18.00", "number", "美元兑墨西哥比索"),
+            ("currency", "currency.base", "RMB", "text", "本位币"),
+            ("currency", "currency.default", "RMB", "text", "默认币种"),
             ("numbering", "prefix.PO", "PO", "text", "采购单前缀"),
             ("numbering", "prefix.SO", "SO", "text", "销售汇总单前缀"),
             ("numbering", "prefix.PAY", "PAY", "text", "收付款前缀"),

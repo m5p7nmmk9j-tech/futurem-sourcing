@@ -7,6 +7,6 @@ public class CustomerOrder : BaseEntity
     public long CustomerId { get; set; }
     public long? RfqId { get; set; }
     public DateTime? OrderDate { get; set; }
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "RMB";
     public string Status { get; set; } = "draft";
 }

@@ -87,17 +87,17 @@ const dialogVisible = ref(false)
 const poDialogVisible = ref(false)
 const selectedId = ref<number | null>(null)
 const selectedCoId = ref<number | null>(null)
-const form = reactive<any>({ id: 0, customerId: null, rfqId: null, orderDate: '', currency: 'USD', status: 'draft', remark: '' })
-const poForm = reactive<any>({ supplierId: null, expectedDeliveryDate: '', currency: 'CNY' })
+const form = reactive<any>({ id: 0, customerId: null, rfqId: null, orderDate: '', currency: 'RMB', status: 'draft', remark: '' })
+const poForm = reactive<any>({ supplierId: null, expectedDeliveryDate: '', currency: 'RMB' })
 
 async function loadCustomers() { const res = await http.get('/customers'); customers.value = res.data }
 async function loadSuppliers() { const res = await http.get('/suppliers'); suppliers.value = res.data }
 async function load() { const params: any = {}; if (customerId.value) params.customerId = customerId.value; const res = await http.get('/customer-orders', { params }); rows.value = res.data; if (!selectedId.value && rows.value.length) selectedId.value = rows.value[0].id }
-function reset() { Object.assign(form, { id: 0, customerId: null, rfqId: null, orderDate: '', currency: 'USD', status: 'draft', remark: '' }) }
+function reset() { Object.assign(form, { id: 0, customerId: null, rfqId: null, orderDate: '', currency: 'RMB', status: 'draft', remark: '' }) }
 function openCreate() { reset(); dialogVisible.value = true }
 function openEdit(row: any) { Object.assign(form, row); dialogVisible.value = true }
 function selectRow(row: any) { selectedId.value = row.id }
-function openPoDialog(row: any) { selectedCoId.value = row.id; Object.assign(poForm, { supplierId: null, expectedDeliveryDate: '', currency: 'CNY' }); poDialogVisible.value = true }
+function openPoDialog(row: any) { selectedCoId.value = row.id; Object.assign(poForm, { supplierId: null, expectedDeliveryDate: '', currency: 'RMB' }); poDialogVisible.value = true }
 async function save() { if (!form.customerId) return ElMessage.warning('请选择客户'); const res = form.id ? await http.put(`/customer-orders/${form.id}`, form) : await http.post('/customer-orders', form); dialogVisible.value = false; ElMessage.success('保存成功'); await load(); selectedId.value = res.data?.id || form.id || selectedId.value }
 async function copy(id: number) { await http.post(`/customer-orders/${id}/copy`); ElMessage.success('复制成功'); await load() }
 async function generatePo() { if (!selectedCoId.value) return; if (!poForm.supplierId) return ElMessage.warning('请选择供应商'); const res = await http.post(`/customer-orders/${selectedCoId.value}/generate-po`, poForm); poDialogVisible.value = false; ElMessage.success(`已生成 PO：${res.data?.no || ''}`); await load() }

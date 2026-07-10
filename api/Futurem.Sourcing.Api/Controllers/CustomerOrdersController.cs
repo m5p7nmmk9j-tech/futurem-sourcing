@@ -87,7 +87,7 @@ public class CustomerOrdersController : ControllerBase
             CustomerId = source.CustomerId,
             OrderDate = DateTime.Today,
             ExpectedDeliveryDate = request.ExpectedDeliveryDate,
-            Currency = string.IsNullOrWhiteSpace(request.Currency) ? "CNY" : request.Currency!,
+            Currency = string.IsNullOrWhiteSpace(request.Currency) ? "RMB" : request.Currency!,
             Status = "draft",
             PayStatus = "unpaid",
             Remark = $"由 CO {source.No} 生成",

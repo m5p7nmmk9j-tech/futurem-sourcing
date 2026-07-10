@@ -75,7 +75,7 @@ public class SummaryOrdersController : ControllerBase
             BuyingTripId = pos.FirstOrDefault()?.BuyingTripId,
             CustomerId = customerId.Value,
             OrderDate = DateTime.Today,
-            Currency = string.IsNullOrWhiteSpace(request.Currency) ? "USD" : request.Currency!,
+            Currency = string.IsNullOrWhiteSpace(request.Currency) ? "RMB" : request.Currency!,
             Status = "draft",
             Remark = $"由 PO 汇总生成: {string.Join(", ", pos.Select(x => x.No))}",
             CreatedAt = DateTime.Now

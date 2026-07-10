@@ -8,7 +8,7 @@ public class ApprovalRequest : BaseEntity
     public long TargetId { get; set; }
     public string Title { get; set; } = string.Empty;
     public decimal Amount { get; set; }
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "RMB";
     public string Status { get; set; } = "draft";
     public long? ApplicantId { get; set; }
     public long? CurrentApproverId { get; set; }

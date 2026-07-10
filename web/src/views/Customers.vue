@@ -50,9 +50,9 @@ import { http } from '../api/http'
 const rows = ref<any[]>([])
 const keyword = ref('')
 const dialogVisible = ref(false)
-const form = reactive<any>({ id: 0, name: '', country: '', port: '', contactName: '', phone: '', whatsapp: '', email: '', currency: 'USD', remark: '' })
+const form = reactive<any>({ id: 0, name: '', country: '', port: '', contactName: '', phone: '', whatsapp: '', email: '', currency: 'RMB', remark: '' })
 async function load() { const res = await http.get('/customers', { params: { keyword: keyword.value } }); rows.value = res.data }
-function reset() { Object.assign(form, { id: 0, name: '', country: '', port: '', contactName: '', phone: '', whatsapp: '', email: '', currency: 'USD', remark: '' }) }
+function reset() { Object.assign(form, { id: 0, name: '', country: '', port: '', contactName: '', phone: '', whatsapp: '', email: '', currency: 'RMB', remark: '' }) }
 function openCreate() { reset(); dialogVisible.value = true }
 function openEdit(row: any) { Object.assign(form, row); dialogVisible.value = true }
 async function save() { if (!form.name) return ElMessage.warning('请输入客户名称'); form.id ? await http.put(`/customers/${form.id}`, form) : await http.post('/customers', form); dialogVisible.value = false; ElMessage.success('保存成功'); await load() }

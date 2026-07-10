@@ -8,7 +8,7 @@ public class BankAccount : BaseEntity
     public string Name { get; set; } = string.Empty;
     public string? BankName { get; set; }
     public string? AccountNo { get; set; }
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "RMB";
 
     [Column(TypeName = "decimal(18,4)")]
     public decimal OpeningBalance { get; set; }

@@ -57,10 +57,10 @@ const rows = ref<any[]>([])
 const keyword = ref('')
 const currency = ref('')
 const dialogVisible = ref(false)
-const form = reactive<any>({ id: 0, name: '', bankName: '', accountNo: '', currency: 'USD', openingBalance: 0, currentBalance: 0, isDefault: false, isActive: true, remark: '' })
+const form = reactive<any>({ id: 0, name: '', bankName: '', accountNo: '', currency: 'RMB', openingBalance: 0, currentBalance: 0, isDefault: false, isActive: true, remark: '' })
 
 async function load() { const res = await http.get('/bank-accounts', { params: { keyword: keyword.value, currency: currency.value } }); rows.value = res.data }
-function reset() { Object.assign(form, { id: 0, name: '', bankName: '', accountNo: '', currency: 'USD', openingBalance: 0, currentBalance: 0, isDefault: false, isActive: true, remark: '' }) }
+function reset() { Object.assign(form, { id: 0, name: '', bankName: '', accountNo: '', currency: 'RMB', openingBalance: 0, currentBalance: 0, isDefault: false, isActive: true, remark: '' }) }
 function openCreate() { reset(); dialogVisible.value = true }
 function openEdit(row: any) { Object.assign(form, row); dialogVisible.value = true }
 async function save() { if (!form.name) return ElMessage.warning('请输入账户名称'); if (form.id) await http.put(`/bank-accounts/${form.id}`, form); else await http.post('/bank-accounts', form); dialogVisible.value = false; ElMessage.success('保存成功'); await load() }
