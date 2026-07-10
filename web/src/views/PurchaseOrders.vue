@@ -10,7 +10,7 @@
       </div>
       <el-table :data="rows" border stripe @selection-change="selectionChange">
         <el-table-column type="selection" width="50" />
-        <el-table-column prop="no" label="PO单号" width="190"/><el-table-column prop="supplierId" label="供应商ID" width="100"/><el-table-column prop="customerId" label="客户ID" width="100"/><el-table-column prop="customerOrderId" label="来源CO ID" width="110"/><el-table-column prop="orderDate" label="下单日期" width="150"/><el-table-column prop="expectedDeliveryDate" label="交货期" width="150"/><el-table-column prop="currency" label="币种" width="90"/><el-table-column prop="status" label="状态" width="110"/><el-table-column prop="payStatus" label="付款状态" width="110"/><el-table-column prop="remark" label="备注" min-width="220"/>
+        <el-table-column prop="no" label="PO单号" width="190"/><el-table-column prop="supplierId" label="供应商ID" width="100"/><el-table-column prop="customerId" label="客户ID" width="100"/><el-table-column prop="customerOrderId" label="来源CO ID" width="110"/><el-table-column prop="orderDate" label="下单日期" width="150"/><el-table-column prop="expectedDeliveryDate" label="交货期" width="150"/><el-table-column prop="deliveryTerms" label="交货条款" min-width="150"/><el-table-column prop="paymentTerms" label="账期条款" min-width="150"/><el-table-column prop="currency" label="币种" width="90"/><el-table-column prop="status" label="状态" width="110"/><el-table-column prop="payStatus" label="付款状态" width="110"/><el-table-column prop="remark" label="备注" min-width="220"/>
         <el-table-column label="操作" width="380" fixed="right"><template #default="scope"><el-button size="small" type="success" @click="selectRow(scope.row)">明细</el-button><el-button size="small" type="warning" @click="generatePayable(scope.row.id)">生成应付</el-button><el-button size="small" @click="openEdit(scope.row)">编辑</el-button><el-button size="small" @click="copy(scope.row.id)">复制</el-button><el-button size="small" type="danger" @click="remove(scope.row.id)">删除</el-button></template></el-table-column>
       </el-table>
       <DocumentLinesEditor v-if="selectedId" document-type="PO" :document-id="selectedId" />
@@ -23,6 +23,8 @@
         <el-form-item label="来源CO ID"><el-input-number v-model="form.customerOrderId" :min="0" style="width:100%" /></el-form-item>
         <el-form-item label="下单日期"><el-date-picker v-model="form.orderDate" type="date" value-format="YYYY-MM-DD" style="width:100%" /></el-form-item>
         <el-form-item label="预计交货期"><el-date-picker v-model="form.expectedDeliveryDate" type="date" value-format="YYYY-MM-DD" style="width:100%" /></el-form-item>
+        <el-form-item label="交货条款"><el-input v-model="form.deliveryTerms" placeholder="例如：收到定金后 30 天交货" /></el-form-item>
+        <el-form-item label="账期条款"><el-input v-model="form.paymentTerms" placeholder="例如：30% 定金，70% 出货前付清" /></el-form-item>
         <el-form-item label="币种"><el-input v-model="form.currency" /></el-form-item><el-form-item label="状态"><el-input v-model="form.status" /></el-form-item><el-form-item label="付款状态"><el-input v-model="form.payStatus" /></el-form-item><el-form-item label="备注"><el-input v-model="form.remark" type="textarea" /></el-form-item>
       </el-form>
       <template #footer><el-button @click="dialogVisible=false">取消</el-button><el-button type="primary" @click="save">保存</el-button></template>
@@ -72,13 +74,13 @@ import { http } from '../api/http'
 import DocumentLinesEditor from '../components/DocumentLinesEditor.vue'
 const rows=ref<any[]>([]), suppliers=ref<any[]>([]), customers=ref<any[]>([]), selectedRows=ref<any[]>([])
 const supplierId=ref<number|null>(null), customerId=ref<number|null>(null), dialogVisible=ref(false), soDialogVisible=ref(false), supplierDialogVisible=ref(false), customerDialogVisible=ref(false), selectedId=ref<number|null>(null)
-const form=reactive<any>({id:0,supplierId:null,customerId:null,customerOrderId:null,orderDate:'',expectedDeliveryDate:'',currency:'RMB',status:'draft',payStatus:'unpaid',remark:''})
+const form=reactive<any>({id:0,supplierId:null,customerId:null,customerOrderId:null,orderDate:'',expectedDeliveryDate:'',deliveryTerms:'',paymentTerms:'',currency:'RMB',status:'draft',payStatus:'unpaid',remark:''})
 const soForm=reactive<any>({customerId:null,currency:'RMB'})
 const supplierForm=reactive<any>({name:'',shopNo:'',mainProducts:'',contactName:'',phone:'',whatsapp:'',remark:''})
 const customerForm=reactive<any>({name:'',country:'',port:'',contactName:'',phone:'',whatsapp:'',currency:'RMB',remark:''})
 async function loadSuppliers(){suppliers.value=(await http.get('/suppliers')).data} async function loadCustomers(){customers.value=(await http.get('/customers')).data}
 async function load(){const params:any={}; if(supplierId.value)params.supplierId=supplierId.value; if(customerId.value)params.customerId=customerId.value; rows.value=(await http.get('/purchase-orders',{params})).data; if(!selectedId.value&&rows.value.length)selectedId.value=rows.value[0].id}
-function reset(){Object.assign(form,{id:0,supplierId:null,customerId:null,customerOrderId:null,orderDate:'',expectedDeliveryDate:'',currency:'RMB',status:'draft',payStatus:'unpaid',remark:''})}
+function reset(){Object.assign(form,{id:0,supplierId:null,customerId:null,customerOrderId:null,orderDate:'',expectedDeliveryDate:'',deliveryTerms:'',paymentTerms:'',currency:'RMB',status:'draft',payStatus:'unpaid',remark:''})}
 function openCreate(){reset();dialogVisible.value=true} function openEdit(row:any){Object.assign(form,row);dialogVisible.value=true} function selectRow(row:any){selectedId.value=row.id} function selectionChange(rows:any[]){selectedRows.value=rows}
 function openSoDialog(){if(!selectedRows.value.length)return ElMessage.warning('请先勾选 PO'); const first=selectedRows.value.find(x=>x.customerId); Object.assign(soForm,{customerId:first?.customerId||null,currency:'RMB'}); soDialogVisible.value=true}
 function openSupplierDialog(){Object.assign(supplierForm,{name:'',shopNo:'',mainProducts:'',contactName:'',phone:'',whatsapp:'',remark:''}); supplierDialogVisible.value=true}

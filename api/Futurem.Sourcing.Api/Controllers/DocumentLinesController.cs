@@ -16,7 +16,7 @@ public class DocumentLinesController : ControllerBase
     public async Task<ActionResult<IEnumerable<DocumentLine>>> List([FromQuery] string documentType, [FromQuery] long documentId)
     {
         return await _db.DocumentLines
-            .Where(x => x.DocumentType == documentType && x.DocumentId == documentId)
+            .Where(x => !x.IsDeleted && x.DocumentType == documentType && x.DocumentId == documentId)
             .OrderBy(x => x.SortNo)
             .ThenBy(x => x.Id)
             .ToListAsync();
@@ -26,7 +26,7 @@ public class DocumentLinesController : ControllerBase
     public async Task<ActionResult<object>> Summary([FromQuery] string documentType, [FromQuery] long documentId)
     {
         var lines = await _db.DocumentLines
-            .Where(x => x.DocumentType == documentType && x.DocumentId == documentId)
+            .Where(x => !x.IsDeleted && x.DocumentType == documentType && x.DocumentId == documentId)
             .ToListAsync();
         foreach (var line in lines) Calculate(line);
 

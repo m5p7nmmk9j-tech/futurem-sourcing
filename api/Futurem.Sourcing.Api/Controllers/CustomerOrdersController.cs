@@ -17,14 +17,46 @@ public class CustomerOrdersController : ControllerBase
         _db = db;
     }
 
-    public record GeneratePoRequest(long SupplierId, DateTime? ExpectedDeliveryDate, string? Currency);
+    public record GeneratePoRequest(long SupplierId, DateTime? ExpectedDeliveryDate, string? Currency, string? DeliveryTerms, string? PaymentTerms);
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CustomerOrder>>> List([FromQuery] long? customerId)
+    public async Task<IActionResult> List([FromQuery] long? customerId)
     {
         var query = _db.CustomerOrders.AsQueryable();
         if (customerId.HasValue) query = query.Where(x => x.CustomerId == customerId.Value);
-        return await query.OrderByDescending(x => x.Id).Take(200).ToListAsync();
+        var orders = await query.OrderByDescending(x => x.Id).Take(200).ToListAsync();
+        var ids = orders.Select(x => x.Id).ToList();
+        var lines = await _db.DocumentLines
+            .Where(x => !x.IsDeleted && x.DocumentType == "CO" && ids.Contains(x.DocumentId))
+            .ToListAsync();
+        var summaries = lines
+            .GroupBy(x => x.DocumentId)
+            .ToDictionary(
+                x => x.Key,
+                x => new
+                {
+                    TotalCbm = x.Sum(CalculateTotalCbm),
+                    Cartons = x.Sum(line => line.Cartons),
+                    Quantity = x.Sum(line => line.Quantity)
+                });
+        return Ok(orders.Select(x => new
+        {
+            x.Id,
+            x.No,
+            x.BuyingTripId,
+            x.CustomerId,
+            x.RfqId,
+            x.OrderDate,
+            x.ExpectedDeliveryDate,
+            x.Currency,
+            x.Status,
+            x.DeliveryTerms,
+            x.PaymentTerms,
+            x.Remark,
+            totalCbm = summaries.TryGetValue(x.Id, out var s) ? s.TotalCbm : 0,
+            cartons = summaries.TryGetValue(x.Id, out s) ? s.Cartons : 0,
+            quantity = summaries.TryGetValue(x.Id, out s) ? s.Quantity : 0
+        }));
     }
 
     [HttpGet("{id:long}")]
@@ -59,8 +91,11 @@ public class CustomerOrdersController : ControllerBase
             CustomerId = source.CustomerId,
             RfqId = source.RfqId,
             OrderDate = DateTime.Today,
+            ExpectedDeliveryDate = source.ExpectedDeliveryDate,
             Currency = source.Currency,
             Status = "draft",
+            DeliveryTerms = source.DeliveryTerms,
+            PaymentTerms = source.PaymentTerms,
             Remark = $"复制自 {source.No}",
             CreatedAt = DateTime.Now
         };
@@ -90,6 +125,8 @@ public class CustomerOrdersController : ControllerBase
             Currency = string.IsNullOrWhiteSpace(request.Currency) ? "RMB" : request.Currency!,
             Status = "draft",
             PayStatus = "unpaid",
+            DeliveryTerms = string.IsNullOrWhiteSpace(request.DeliveryTerms) ? source.DeliveryTerms : request.DeliveryTerms,
+            PaymentTerms = string.IsNullOrWhiteSpace(request.PaymentTerms) ? source.PaymentTerms : request.PaymentTerms,
             Remark = $"由 CO {source.No} 生成",
             CreatedAt = DateTime.Now
         };
@@ -112,8 +149,11 @@ public class CustomerOrdersController : ControllerBase
         entity.BuyingTripId = input.BuyingTripId;
         entity.RfqId = input.RfqId;
         entity.OrderDate = input.OrderDate;
+        entity.ExpectedDeliveryDate = input.ExpectedDeliveryDate;
         entity.Currency = input.Currency;
         entity.Status = input.Status;
+        entity.DeliveryTerms = input.DeliveryTerms;
+        entity.PaymentTerms = input.PaymentTerms;
         entity.Remark = input.Remark;
         entity.UpdatedAt = DateTime.Now;
         await _db.SaveChangesAsync();
@@ -129,5 +169,17 @@ public class CustomerOrdersController : ControllerBase
         entity.UpdatedAt = DateTime.Now;
         await _db.SaveChangesAsync();
         return Ok(new { ok = true });
+    }
+
+    private static decimal CalculateTotalCbm(DocumentLine line)
+    {
+        var cartonCbm = line.CartonCbm;
+        if (cartonCbm <= 0 && line.CartonLengthCm > 0 && line.CartonWidthCm > 0 && line.CartonHeightCm > 0)
+        {
+            cartonCbm = line.CartonLengthCm * line.CartonWidthCm * line.CartonHeightCm / 1_000_000m;
+        }
+
+        if (line.TotalCbm > 0) return line.TotalCbm;
+        return cartonCbm * line.Cartons;
     }
 }

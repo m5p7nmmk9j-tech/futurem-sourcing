@@ -72,6 +72,8 @@ public class PurchaseOrdersController : ControllerBase
             Currency = source.Currency,
             Status = "draft",
             PayStatus = "unpaid",
+            DeliveryTerms = source.DeliveryTerms,
+            PaymentTerms = source.PaymentTerms,
             Remark = $"复制自 {source.No}",
             CreatedAt = DateTime.Now
         };
@@ -95,6 +97,8 @@ public class PurchaseOrdersController : ControllerBase
         entity.Currency = input.Currency;
         entity.Status = input.Status;
         entity.PayStatus = input.PayStatus;
+        entity.DeliveryTerms = input.DeliveryTerms;
+        entity.PaymentTerms = input.PaymentTerms;
         entity.Remark = input.Remark;
         entity.UpdatedAt = DateTime.Now;
         await _db.SaveChangesAsync();

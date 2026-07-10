@@ -17,6 +17,11 @@
         <el-table-column prop="no" label="CO单号" width="190" />
         <el-table-column prop="customerId" label="客户ID" width="100" />
         <el-table-column prop="orderDate" label="订单日期" width="150" />
+        <el-table-column prop="expectedDeliveryDate" label="交货期" width="150" />
+        <el-table-column prop="totalCbm" label="总CBM" width="110" />
+        <el-table-column prop="cartons" label="箱数" width="100" />
+        <el-table-column prop="deliveryTerms" label="交货条款" min-width="150" />
+        <el-table-column prop="paymentTerms" label="账期条款" min-width="150" />
         <el-table-column prop="currency" label="币种" width="90" />
         <el-table-column prop="status" label="状态" width="110" />
         <el-table-column prop="remark" label="备注" min-width="220" />
@@ -44,6 +49,9 @@
         </el-form-item>
         <el-form-item label="来源RFQ ID"><el-input-number v-model="form.rfqId" :min="0" style="width: 100%" /></el-form-item>
         <el-form-item label="订单日期"><el-date-picker v-model="form.orderDate" type="date" value-format="YYYY-MM-DD" style="width: 100%" /></el-form-item>
+        <el-form-item label="交货期"><el-date-picker v-model="form.expectedDeliveryDate" type="date" value-format="YYYY-MM-DD" style="width: 100%" /></el-form-item>
+        <el-form-item label="交货条款"><el-input v-model="form.deliveryTerms" placeholder="例如：收到定金后 30 天交货" /></el-form-item>
+        <el-form-item label="账期条款"><el-input v-model="form.paymentTerms" placeholder="例如：30% 定金，70% 出货前付清" /></el-form-item>
         <el-form-item label="币种"><el-input v-model="form.currency" /></el-form-item>
         <el-form-item label="状态"><el-input v-model="form.status" /></el-form-item>
         <el-form-item label="备注"><el-input v-model="form.remark" type="textarea" /></el-form-item>
@@ -63,6 +71,8 @@
           </el-select>
         </el-form-item>
         <el-form-item label="预计交期"><el-date-picker v-model="poForm.expectedDeliveryDate" type="date" value-format="YYYY-MM-DD" style="width: 100%" /></el-form-item>
+        <el-form-item label="交货条款"><el-input v-model="poForm.deliveryTerms" /></el-form-item>
+        <el-form-item label="账期条款"><el-input v-model="poForm.paymentTerms" /></el-form-item>
         <el-form-item label="币种"><el-input v-model="poForm.currency" /></el-form-item>
       </el-form>
       <template #footer>
@@ -87,17 +97,17 @@ const dialogVisible = ref(false)
 const poDialogVisible = ref(false)
 const selectedId = ref<number | null>(null)
 const selectedCoId = ref<number | null>(null)
-const form = reactive<any>({ id: 0, customerId: null, rfqId: null, orderDate: '', currency: 'RMB', status: 'draft', remark: '' })
-const poForm = reactive<any>({ supplierId: null, expectedDeliveryDate: '', currency: 'RMB' })
+const form = reactive<any>({ id: 0, customerId: null, rfqId: null, orderDate: '', expectedDeliveryDate: '', deliveryTerms: '', paymentTerms: '', currency: 'RMB', status: 'draft', remark: '' })
+const poForm = reactive<any>({ supplierId: null, expectedDeliveryDate: '', deliveryTerms: '', paymentTerms: '', currency: 'RMB' })
 
 async function loadCustomers() { const res = await http.get('/customers'); customers.value = res.data }
 async function loadSuppliers() { const res = await http.get('/suppliers'); suppliers.value = res.data }
 async function load() { const params: any = {}; if (customerId.value) params.customerId = customerId.value; const res = await http.get('/customer-orders', { params }); rows.value = res.data; if (!selectedId.value && rows.value.length) selectedId.value = rows.value[0].id }
-function reset() { Object.assign(form, { id: 0, customerId: null, rfqId: null, orderDate: '', currency: 'RMB', status: 'draft', remark: '' }) }
+function reset() { Object.assign(form, { id: 0, customerId: null, rfqId: null, orderDate: '', expectedDeliveryDate: '', deliveryTerms: '', paymentTerms: '', currency: 'RMB', status: 'draft', remark: '' }) }
 function openCreate() { reset(); dialogVisible.value = true }
 function openEdit(row: any) { Object.assign(form, row); dialogVisible.value = true }
 function selectRow(row: any) { selectedId.value = row.id }
-function openPoDialog(row: any) { selectedCoId.value = row.id; Object.assign(poForm, { supplierId: null, expectedDeliveryDate: '', currency: 'RMB' }); poDialogVisible.value = true }
+function openPoDialog(row: any) { selectedCoId.value = row.id; Object.assign(poForm, { supplierId: null, expectedDeliveryDate: row.expectedDeliveryDate || '', deliveryTerms: row.deliveryTerms || '', paymentTerms: row.paymentTerms || '', currency: row.currency || 'RMB' }); poDialogVisible.value = true }
 async function save() { if (!form.customerId) return ElMessage.warning('请选择客户'); const res = form.id ? await http.put(`/customer-orders/${form.id}`, form) : await http.post('/customer-orders', form); dialogVisible.value = false; ElMessage.success('保存成功'); await load(); selectedId.value = res.data?.id || form.id || selectedId.value }
 async function copy(id: number) { await http.post(`/customer-orders/${id}/copy`); ElMessage.success('复制成功'); await load() }
 async function generatePo() { if (!selectedCoId.value) return; if (!poForm.supplierId) return ElMessage.warning('请选择供应商'); const res = await http.post(`/customer-orders/${selectedCoId.value}/generate-po`, poForm); poDialogVisible.value = false; ElMessage.success(`已生成 PO：${res.data?.no || ''}`); await load() }

@@ -32,6 +32,7 @@
           <el-col :span="8"><el-form-item label="单箱NW"><el-input-number v-model="form.cartonNwKg" :min="0" :precision="2" style="width:100%"/></el-form-item></el-col>
           <el-col :span="12"><el-form-item label="客户货号"><el-input v-model="form.customerItemNo"/></el-form-item></el-col>
           <el-col :span="12"><el-form-item label="图片URL"><el-input v-model="form.imageUrl"/></el-form-item></el-col>
+          <el-col :span="24"><el-form-item label="添加图片"><input type="file" accept="image/*" @change="selectImage" /></el-form-item></el-col>
           <el-col :span="24"><el-image v-if="form.imageUrl" :src="form.imageUrl" fit="contain" class="image-preview" /></el-col>
           <el-col :span="24"><el-form-item label="备注"><el-input v-model="form.remark" type="textarea"/></el-form-item></el-col>
         </el-row>
@@ -51,6 +52,13 @@ function reset(){ Object.assign(form,{id:0,nameCn:'',nameEn:'',nameEs:'',brand:'
 function openCreate(){ reset(); dialogVisible.value=true }
 function openEdit(row:any){ Object.assign(form,row); dialogVisible.value=true }
 function cartonCbm(row:any){ return Number(((Number(row.cartonLengthCm||0)*Number(row.cartonWidthCm||0)*Number(row.cartonHeightCm||0))/1000000).toFixed(6)) }
+function selectImage(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => { form.imageUrl = String(reader.result || '') }
+  reader.readAsDataURL(file)
+}
 async function save(){ if(!form.nameCn) return ElMessage.warning('请输入中文名'); form.id ? await http.put(`/products/${form.id}`,form) : await http.post('/products',form); dialogVisible.value=false; ElMessage.success('保存成功'); await load() }
 async function remove(id:number){ await ElMessageBox.confirm('确认删除该商品？','提示'); await http.delete(`/products/${id}`); ElMessage.success('已删除'); await load() }
 onMounted(load)

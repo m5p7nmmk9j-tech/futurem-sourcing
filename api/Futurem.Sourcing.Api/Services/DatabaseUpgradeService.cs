@@ -43,8 +43,10 @@ public class DatabaseUpgradeService
                 await _db.Database.EnsureCreatedAsync();
             }
             await EnsureV1ProductColumnsAsync();
+            await EnsureV1ProductImageColumnAsync();
             await EnsureV1ProductCodeColumnsAsync();
             await EnsureV1ProductIndexesAsync();
+            await EnsureV1OrderTermsColumnsAsync();
 
             history = new MigrationHistory { MigrationName = "startup-auto-upgrade", Version = TargetVersion, StartedAt = DateTime.Now, Status = "running", CreatedAt = DateTime.Now };
             _db.MigrationHistories.Add(history);
@@ -80,6 +82,20 @@ public class DatabaseUpgradeService
         await AddColumnIfMissingAsync("products", "carton_height_cm", "ALTER TABLE `products` ADD COLUMN `carton_height_cm` DECIMAL(18,4) NOT NULL DEFAULT 0");
         await AddColumnIfMissingAsync("products", "carton_gw_kg", "ALTER TABLE `products` ADD COLUMN `carton_gw_kg` DECIMAL(18,4) NOT NULL DEFAULT 0");
         await AddColumnIfMissingAsync("products", "carton_nw_kg", "ALTER TABLE `products` ADD COLUMN `carton_nw_kg` DECIMAL(18,4) NOT NULL DEFAULT 0");
+    }
+
+    private async Task EnsureV1OrderTermsColumnsAsync()
+    {
+        await AddColumnIfMissingAsync("customer_orders", "expected_delivery_date", "ALTER TABLE `customer_orders` ADD COLUMN `expected_delivery_date` DATETIME NULL");
+        await AddColumnIfMissingAsync("customer_orders", "delivery_terms", "ALTER TABLE `customer_orders` ADD COLUMN `delivery_terms` VARCHAR(500) NULL");
+        await AddColumnIfMissingAsync("customer_orders", "payment_terms", "ALTER TABLE `customer_orders` ADD COLUMN `payment_terms` VARCHAR(500) NULL");
+        await AddColumnIfMissingAsync("purchase_orders", "delivery_terms", "ALTER TABLE `purchase_orders` ADD COLUMN `delivery_terms` VARCHAR(500) NULL");
+        await AddColumnIfMissingAsync("purchase_orders", "payment_terms", "ALTER TABLE `purchase_orders` ADD COLUMN `payment_terms` VARCHAR(500) NULL");
+    }
+
+    private async Task EnsureV1ProductImageColumnAsync()
+    {
+        await _db.Database.ExecuteSqlRawAsync("ALTER TABLE `products` MODIFY COLUMN `image_url` MEDIUMTEXT NULL");
     }
 
     private async Task AddColumnIfMissingAsync(string table, string column, string alterSql)

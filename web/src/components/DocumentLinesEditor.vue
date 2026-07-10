@@ -78,6 +78,7 @@
           <el-col :span="8"><el-form-item label="单箱NW"><el-input-number v-model="productForm.cartonNwKg" :min="0" :precision="2" style="width:100%" /></el-form-item></el-col>
           <el-col :span="8"><el-form-item label="客户货号"><el-input v-model="productForm.customerItemNo" /></el-form-item></el-col>
           <el-col :span="24"><el-form-item label="图片URL"><el-input v-model="productForm.imageUrl" /></el-form-item></el-col>
+          <el-col :span="24"><el-form-item label="添加图片"><input type="file" accept="image/*" @change="selectProductImage" /></el-form-item></el-col>
           <el-col :span="24"><el-form-item label="备注"><el-input v-model="productForm.remark" type="textarea" /></el-form-item></el-col>
         </el-row>
       </el-form>
@@ -117,6 +118,13 @@ function openEdit(row: any) { Object.assign(form, row); dialogVisible.value = tr
 function syncQuantityFromPacking() { if (Number(form.cartonQty || 0) > 0 && Number(form.cartons || 0) > 0) form.quantity = Number(form.cartonQty || 0) * Number(form.cartons || 0) }
 function withCalculatedTotals(line: any) { return { ...line, ...calculateDocumentLine(line) } }
 function openProductDialog() { Object.assign(productForm, { nameCn: form.productName || '', nameEn: '', unit: form.unit || 'PCS', purchasePrice: form.unitPrice || 0, cartonQty: form.cartonQty || 0, cartonLengthCm: form.cartonLengthCm || 0, cartonWidthCm: form.cartonWidthCm || 0, cartonHeightCm: form.cartonHeightCm || 0, cartonGwKg: form.cartonGwKg || 0, cartonNwKg: form.cartonNwKg || 0, customerItemNo: form.customerItemNo || '', imageUrl: form.imageUrl || '', remark: '' }); productDialogVisible.value = true }
+function selectProductImage(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => { productForm.imageUrl = String(reader.result || '') }
+  reader.readAsDataURL(file)
+}
 async function saveProduct() {
   if (!productForm.nameCn) return ElMessage.warning('请输入商品中文名')
   const res = await http.post('/products', productForm)

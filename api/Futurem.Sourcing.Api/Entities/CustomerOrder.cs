@@ -7,6 +7,9 @@ public class CustomerOrder : BaseEntity
     public long CustomerId { get; set; }
     public long? RfqId { get; set; }
     public DateTime? OrderDate { get; set; }
+    public DateTime? ExpectedDeliveryDate { get; set; }
     public string Currency { get; set; } = "RMB";
     public string Status { get; set; } = "draft";
+    public string? DeliveryTerms { get; set; }
+    public string? PaymentTerms { get; set; }
 }

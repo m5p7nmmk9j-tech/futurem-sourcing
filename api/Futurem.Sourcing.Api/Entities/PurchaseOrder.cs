@@ -12,4 +12,6 @@ public class PurchaseOrder : BaseEntity
     public string Currency { get; set; } = "RMB";
     public string Status { get; set; } = "draft";
     public string PayStatus { get; set; } = "unpaid";
+    public string? DeliveryTerms { get; set; }
+    public string? PaymentTerms { get; set; }
 }
