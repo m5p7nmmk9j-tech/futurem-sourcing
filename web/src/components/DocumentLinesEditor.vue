@@ -63,13 +63,23 @@
       <template #footer><el-button @click="dialogVisible=false">取消</el-button><el-button type="primary" @click="save">保存</el-button></template>
     </el-dialog>
 
-    <el-dialog v-model="productDialogVisible" title="新增商品" width="560px">
+    <el-dialog v-model="productDialogVisible" title="新增商品" width="680px">
       <el-form label-width="90px">
-        <el-form-item label="中文名"><el-input v-model="productForm.nameCn" /></el-form-item>
-        <el-form-item label="英文名"><el-input v-model="productForm.nameEn" /></el-form-item>
-        <el-form-item label="单位"><el-input v-model="productForm.unit" /></el-form-item>
-        <el-form-item label="客户货号"><el-input v-model="productForm.customerItemNo" /></el-form-item>
-        <el-form-item label="备注"><el-input v-model="productForm.remark" type="textarea" /></el-form-item>
+        <el-row :gutter="12">
+          <el-col :span="12"><el-form-item label="中文名"><el-input v-model="productForm.nameCn" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item label="英文名"><el-input v-model="productForm.nameEn" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="单位"><el-input v-model="productForm.unit" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="采购价"><el-input-number v-model="productForm.purchasePrice" :min="0" :precision="4" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="单箱数量"><el-input-number v-model="productForm.cartonQty" :min="0" :precision="2" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="长cm"><el-input-number v-model="productForm.cartonLengthCm" :min="0" :precision="2" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="宽cm"><el-input-number v-model="productForm.cartonWidthCm" :min="0" :precision="2" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="高cm"><el-input-number v-model="productForm.cartonHeightCm" :min="0" :precision="2" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="单箱GW"><el-input-number v-model="productForm.cartonGwKg" :min="0" :precision="2" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="单箱NW"><el-input-number v-model="productForm.cartonNwKg" :min="0" :precision="2" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="客户货号"><el-input v-model="productForm.customerItemNo" /></el-form-item></el-col>
+          <el-col :span="24"><el-form-item label="图片URL"><el-input v-model="productForm.imageUrl" /></el-form-item></el-col>
+          <el-col :span="24"><el-form-item label="备注"><el-input v-model="productForm.remark" type="textarea" /></el-form-item></el-col>
+        </el-row>
       </el-form>
       <template #footer><el-button @click="productDialogVisible=false">取消</el-button><el-button type="primary" @click="saveProduct">保存并选中</el-button></template>
     </el-dialog>
@@ -80,7 +90,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '../api/http'
-import { calculateDocumentLine, calculateDocumentLineSummary } from '../utils/documentLineCalc'
+import { applyProductDefaultsToLine, calculateDocumentLine, calculateDocumentLineSummary } from '../utils/documentLineCalc'
 
 const props = defineProps<{ documentType: string, documentId: number | null }>()
 const rows = ref<any[]>([])
@@ -89,7 +99,7 @@ const summary = ref<any>({})
 const dialogVisible = ref(false)
 const productDialogVisible = ref(false)
 const form = reactive<any>({ id: 0, documentType: '', documentId: 0, productId: null, sku: '', productName: '', unit: 'PCS', quantity: 0, unitPrice: 0, cartonQty: 0, cartons: 0, cartonLengthCm: 0, cartonWidthCm: 0, cartonHeightCm: 0, cartonGwKg: 0, cartonNwKg: 0, sortNo: 0, remark: '' })
-const productForm = reactive<any>({ nameCn: '', nameEn: '', unit: 'PCS', customerItemNo: '', remark: '' })
+const productForm = reactive<any>({ nameCn: '', nameEn: '', unit: 'PCS', purchasePrice: 0, cartonQty: 0, cartonLengthCm: 0, cartonWidthCm: 0, cartonHeightCm: 0, cartonGwKg: 0, cartonNwKg: 0, customerItemNo: '', imageUrl: '', remark: '' })
 
 const displayRows = computed(() => rows.value.map(withCalculatedTotals))
 const displaySummary = computed(() => calculateDocumentLineSummary(displayRows.value))
@@ -98,12 +108,15 @@ const formTotals = computed(() => calculateDocumentLine(form))
 async function loadProducts() { products.value = (await http.get('/products')).data }
 async function load() { if (!props.documentId) return; rows.value = (await http.get('/document-lines', { params: { documentType: props.documentType, documentId: props.documentId } })).data; summary.value = (await http.get('/document-lines/summary', { params: { documentType: props.documentType, documentId: props.documentId } })).data }
 function reset() { Object.assign(form, { id: 0, documentType: props.documentType, documentId: props.documentId, productId: null, sku: '', productName: '', unit: 'PCS', quantity: 0, unitPrice: 0, cartonQty: 0, cartons: 0, cartonLengthCm: 0, cartonWidthCm: 0, cartonHeightCm: 0, cartonGwKg: 0, cartonNwKg: 0, sortNo: rows.value.length + 1, remark: '' }) }
-function selectProduct(id: number) { const p = products.value.find(x => x.id === id); if (p) { form.sku = p.sku; form.productName = p.nameCn; form.unit = p.unit || 'PCS'; form.customerItemNo = p.customerItemNo } }
+function selectProduct(id: number) {
+  const p = products.value.find(x => x.id === id)
+  if (p) Object.assign(form, applyProductDefaultsToLine({ ...form, sku: p.sku, customerItemNo: p.customerItemNo }, p))
+}
 function openCreate() { if (!props.documentId) return ElMessage.warning('请先保存主单'); reset(); dialogVisible.value = true }
 function openEdit(row: any) { Object.assign(form, row); dialogVisible.value = true }
 function syncQuantityFromPacking() { if (Number(form.cartonQty || 0) > 0 && Number(form.cartons || 0) > 0) form.quantity = Number(form.cartonQty || 0) * Number(form.cartons || 0) }
 function withCalculatedTotals(line: any) { return { ...line, ...calculateDocumentLine(line) } }
-function openProductDialog() { Object.assign(productForm, { nameCn: form.productName || '', nameEn: '', unit: form.unit || 'PCS', customerItemNo: form.customerItemNo || '', remark: '' }); productDialogVisible.value = true }
+function openProductDialog() { Object.assign(productForm, { nameCn: form.productName || '', nameEn: '', unit: form.unit || 'PCS', purchasePrice: form.unitPrice || 0, cartonQty: form.cartonQty || 0, cartonLengthCm: form.cartonLengthCm || 0, cartonWidthCm: form.cartonWidthCm || 0, cartonHeightCm: form.cartonHeightCm || 0, cartonGwKg: form.cartonGwKg || 0, cartonNwKg: form.cartonNwKg || 0, customerItemNo: form.customerItemNo || '', imageUrl: form.imageUrl || '', remark: '' }); productDialogVisible.value = true }
 async function saveProduct() {
   if (!productForm.nameCn) return ElMessage.warning('请输入商品中文名')
   const res = await http.post('/products', productForm)

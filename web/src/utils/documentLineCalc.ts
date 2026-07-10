@@ -27,6 +27,19 @@ export type DocumentLineSummary = {
   nwKg: number
 }
 
+export type ProductDefaults = {
+  nameCn?: string | null
+  unit?: string | null
+  imageUrl?: string | null
+  purchasePrice?: number | null
+  cartonQty?: number | null
+  cartonLengthCm?: number | null
+  cartonWidthCm?: number | null
+  cartonHeightCm?: number | null
+  cartonGwKg?: number | null
+  cartonNwKg?: number | null
+}
+
 function num(value: number | null | undefined) {
   return Number(value || 0)
 }
@@ -75,4 +88,20 @@ export function calculateDocumentLineSummary(lines: DocumentLineCalcResult[]): D
     gwKg: round(total.gwKg + num(line.totalGwKg)),
     nwKg: round(total.nwKg + num(line.totalNwKg)),
   }), { quantity: 0, amount: 0, cartons: 0, cbm: 0, gwKg: 0, nwKg: 0 })
+}
+
+export function applyProductDefaultsToLine<T extends Record<string, any>>(line: T, product: ProductDefaults): T {
+  return {
+    ...line,
+    productName: product.nameCn || line.productName || '',
+    unit: product.unit || line.unit || 'PCS',
+    imageUrl: product.imageUrl || line.imageUrl || '',
+    unitPrice: num(product.purchasePrice) || num(line.unitPrice),
+    cartonQty: num(product.cartonQty) || num(line.cartonQty),
+    cartonLengthCm: num(product.cartonLengthCm) || num(line.cartonLengthCm),
+    cartonWidthCm: num(product.cartonWidthCm) || num(line.cartonWidthCm),
+    cartonHeightCm: num(product.cartonHeightCm) || num(line.cartonHeightCm),
+    cartonGwKg: num(product.cartonGwKg) || num(line.cartonGwKg),
+    cartonNwKg: num(product.cartonNwKg) || num(line.cartonNwKg),
+  }
 }

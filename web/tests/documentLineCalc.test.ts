@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import {
+  applyProductDefaultsToLine,
   calculateDocumentLine,
   calculateDocumentLineSummary,
 } from '../src/utils/documentLineCalc.ts'
@@ -56,5 +57,32 @@ assert.equal(summary.cartons, 14)
 assert.equal(summary.cbm, 0.196)
 assert.equal(summary.gwKg, 124)
 assert.equal(summary.nwKg, 100)
+
+const lineWithProductDefaults = applyProductDefaultsToLine(
+  { productName: '', unit: 'PCS', unitPrice: 0, cartonQty: 0, cartonLengthCm: 0 },
+  {
+    nameCn: '充电器',
+    unit: 'SET',
+    purchasePrice: 8.5,
+    cartonQty: 120,
+    cartonLengthCm: 60,
+    cartonWidthCm: 40,
+    cartonHeightCm: 30,
+    cartonGwKg: 18,
+    cartonNwKg: 16,
+    imageUrl: 'https://example.com/a.jpg',
+  },
+)
+
+assert.equal(lineWithProductDefaults.productName, '充电器')
+assert.equal(lineWithProductDefaults.unit, 'SET')
+assert.equal(lineWithProductDefaults.unitPrice, 8.5)
+assert.equal(lineWithProductDefaults.cartonQty, 120)
+assert.equal(lineWithProductDefaults.cartonLengthCm, 60)
+assert.equal(lineWithProductDefaults.cartonWidthCm, 40)
+assert.equal(lineWithProductDefaults.cartonHeightCm, 30)
+assert.equal(lineWithProductDefaults.cartonGwKg, 18)
+assert.equal(lineWithProductDefaults.cartonNwKg, 16)
+assert.equal(lineWithProductDefaults.imageUrl, 'https://example.com/a.jpg')
 
 console.log('document line calculations passed')

@@ -27,9 +27,11 @@
 </template>
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '../api/http'
 import DocumentLinesEditor from '../components/DocumentLinesEditor.vue'
+const router = useRouter()
 const rows=ref<any[]>([]), customers=ref<any[]>([]), customerId=ref<number|null>(null), dialogVisible=ref(false), containerDialogVisible=ref(false), selectedId=ref<number|null>(null), selectedSoId=ref<number|null>(null)
 const form=reactive<any>({id:0,customerId:null,orderDate:'',currency:'RMB',status:'draft',goodsAmount:0,commissionFee:0,warehouseFee:0,loadingFee:0,logisticsFee:0,otherFee:0,receivedAmount:0,remark:''})
 const containerForm=reactive<any>({containerType:'40HQ',loadDate:''})
@@ -41,7 +43,7 @@ function openCreate(){reset();dialogVisible.value=true} function openEdit(row:an
 function openContainerDialog(row:any){selectedSoId.value=row.id; Object.assign(containerForm,{containerType:'40HQ',loadDate:''}); containerDialogVisible.value=true}
 async function save(){if(!form.customerId)return ElMessage.warning('请选择客户'); const res=form.id?await http.put(`/summary-orders/${form.id}`,form):await http.post('/summary-orders',form); dialogVisible.value=false; ElMessage.success('保存成功'); await load(); selectedId.value=res.data?.id||form.id||selectedId.value}
 async function copy(id:number){await http.post(`/summary-orders/${id}/copy`); ElMessage.success('复制成功'); await load()}
-async function generateContainer(){if(!selectedSoId.value)return; const res=await http.post('/container-loads/generate-from-so',{summaryOrderId:selectedSoId.value,containerType:containerForm.containerType,loadDate:containerForm.loadDate}); containerDialogVisible.value=false; ElMessage.success(`已生成装柜单：${res.data?.no||''}`); await load()}
+async function generateContainer(){if(!selectedSoId.value)return; const res=await http.post('/container-loads/generate-from-so',{summaryOrderId:selectedSoId.value,containerType:containerForm.containerType,loadDate:containerForm.loadDate}); containerDialogVisible.value=false; ElMessage.success(`已生成装柜单：${res.data?.no||''}`); await router.push({path:'/container-loads',query:{id:res.data?.id,summaryOrderId:selectedSoId.value}})}
 async function generateReceivable(id:number){const res=await http.post(`/summary-orders/${id}/generate-receivable`); ElMessage.success(`已生成应收：${res.data?.no||''}`); await load()}
 async function remove(id:number){await ElMessageBox.confirm('确认删除该 SO？','提示'); await http.delete(`/summary-orders/${id}`); if(selectedId.value===id)selectedId.value=null; ElMessage.success('已删除'); await load()}
 onMounted(async()=>{await loadCustomers();await load()})

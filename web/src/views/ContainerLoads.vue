@@ -42,16 +42,18 @@
 </template>
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '../api/http'
 import DocumentLinesEditor from '../components/DocumentLinesEditor.vue'
+const route = useRoute()
 const rows=ref<any[]>([]), summaryOrders=ref<any[]>([]), summaryOrderId=ref<number|null>(null), dialogVisible=ref(false), shipmentDialogVisible=ref(false), selectedId=ref<number|null>(null), selectedContainerId=ref<number|null>(null)
 const form=reactive<any>({id:0,summaryOrderId:null,containerType:'40HQ',containerNo:'',sealNo:'',loadDate:'',status:'draft',totalCartons:0,totalCbm:0,totalGwKg:0,remark:''})
 const shipmentForm=reactive<any>({shipmentMode:'SEA',carrier:'',departurePort:'',destinationPort:'',etd:'',eta:''})
 const utilization=reactive<any>({})
 const recommendation=reactive<any>({})
 async function loadSummaryOrders(){summaryOrders.value=(await http.get('/summary-orders')).data}
-async function load(){const params:any={}; if(summaryOrderId.value)params.summaryOrderId=summaryOrderId.value; rows.value=(await http.get('/container-loads',{params})).data; if(!selectedId.value&&rows.value.length)selectedId.value=rows.value[0].id}
+async function load(){const params:any={}; if(summaryOrderId.value)params.summaryOrderId=summaryOrderId.value; rows.value=(await http.get('/container-loads',{params})).data; const routeId=Number(route.query.id||0); if(routeId&&rows.value.some(x=>x.id===routeId))selectedId.value=routeId; else if(!selectedId.value&&rows.value.length)selectedId.value=rows.value[0].id}
 function reset(){Object.assign(form,{id:0,summaryOrderId:null,containerType:'40HQ',containerNo:'',sealNo:'',loadDate:'',status:'draft',totalCartons:0,totalCbm:0,totalGwKg:0,remark:''})}
 function openCreate(){reset();dialogVisible.value=true} function openEdit(row:any){Object.assign(form,row);dialogVisible.value=true} function selectRow(row:any){selectedId.value=row.id}
 async function loadUtilization(row:any){selectedId.value=row.id; const res=await http.get(`/container-loads/${row.id}/utilization`); Object.assign(utilization,res.data)}
@@ -62,5 +64,5 @@ async function save(){if(!form.containerType)return ElMessage.warning('请选择
 async function copy(id:number){const res=await http.post(`/container-loads/${id}/copy`); ElMessage.success('复制成功'); await load(); selectedId.value=res.data?.id||selectedId.value}
 async function generateShipment(){if(!selectedContainerId.value)return; const res=await http.post('/shipments/generate-from-container',{containerLoadId:selectedContainerId.value,...shipmentForm}); shipmentDialogVisible.value=false; ElMessage.success(`已生成出运单：${res.data?.no||''}`); await load()}
 async function remove(id:number){await ElMessageBox.confirm('确认删除该装柜单？','提示'); await http.delete(`/container-loads/${id}`); if(selectedId.value===id)selectedId.value=null; ElMessage.success('已删除'); await load()}
-onMounted(async()=>{await loadSummaryOrders();await load()})
+onMounted(async()=>{const routeSoId=Number(route.query.summaryOrderId||0); if(routeSoId)summaryOrderId.value=routeSoId; await loadSummaryOrders(); await load()})
 </script>

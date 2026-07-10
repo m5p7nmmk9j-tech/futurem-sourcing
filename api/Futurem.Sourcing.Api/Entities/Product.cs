@@ -1,5 +1,7 @@
 namespace Futurem.Sourcing.Api.Entities;
 
+using System.ComponentModel.DataAnnotations.Schema;
+
 public class Product : BaseEntity
 {
     public string Sku { get; set; } = string.Empty;
@@ -12,4 +14,25 @@ public class Product : BaseEntity
     public string Unit { get; set; } = "PCS";
     public string? CustomerItemNo { get; set; }
     public string? ImageUrl { get; set; }
+
+    [Column(TypeName = "decimal(18,4)")]
+    public decimal PurchasePrice { get; set; }
+
+    [Column(TypeName = "decimal(18,4)")]
+    public decimal CartonQty { get; set; }
+
+    [Column(TypeName = "decimal(18,4)")]
+    public decimal CartonLengthCm { get; set; }
+
+    [Column(TypeName = "decimal(18,4)")]
+    public decimal CartonWidthCm { get; set; }
+
+    [Column(TypeName = "decimal(18,4)")]
+    public decimal CartonHeightCm { get; set; }
+
+    [Column(TypeName = "decimal(18,4)")]
+    public decimal CartonGwKg { get; set; }
+
+    [Column(TypeName = "decimal(18,4)")]
+    public decimal CartonNwKg { get; set; }
 }

@@ -42,6 +42,7 @@ public class DatabaseUpgradeService
                 _logger.LogInformation("No pending EF migrations. Ensuring database is created.");
                 await _db.Database.EnsureCreatedAsync();
             }
+            await EnsureV1ProductColumnsAsync();
 
             history = new MigrationHistory { MigrationName = "startup-auto-upgrade", Version = TargetVersion, StartedAt = DateTime.Now, Status = "running", CreatedAt = DateTime.Now };
             _db.MigrationHistories.Add(history);
@@ -66,5 +67,25 @@ public class DatabaseUpgradeService
             }
             throw;
         }
+    }
+
+    private async Task EnsureV1ProductColumnsAsync()
+    {
+        await AddColumnIfMissingAsync("products", "purchase_price", "ALTER TABLE `products` ADD COLUMN `purchase_price` DECIMAL(18,4) NOT NULL DEFAULT 0");
+        await AddColumnIfMissingAsync("products", "carton_qty", "ALTER TABLE `products` ADD COLUMN `carton_qty` DECIMAL(18,4) NOT NULL DEFAULT 0");
+        await AddColumnIfMissingAsync("products", "carton_length_cm", "ALTER TABLE `products` ADD COLUMN `carton_length_cm` DECIMAL(18,4) NOT NULL DEFAULT 0");
+        await AddColumnIfMissingAsync("products", "carton_width_cm", "ALTER TABLE `products` ADD COLUMN `carton_width_cm` DECIMAL(18,4) NOT NULL DEFAULT 0");
+        await AddColumnIfMissingAsync("products", "carton_height_cm", "ALTER TABLE `products` ADD COLUMN `carton_height_cm` DECIMAL(18,4) NOT NULL DEFAULT 0");
+        await AddColumnIfMissingAsync("products", "carton_gw_kg", "ALTER TABLE `products` ADD COLUMN `carton_gw_kg` DECIMAL(18,4) NOT NULL DEFAULT 0");
+        await AddColumnIfMissingAsync("products", "carton_nw_kg", "ALTER TABLE `products` ADD COLUMN `carton_nw_kg` DECIMAL(18,4) NOT NULL DEFAULT 0");
+    }
+
+    private async Task AddColumnIfMissingAsync(string table, string column, string alterSql)
+    {
+        var exists = await _db.Database
+            .SqlQueryRaw<int>("SELECT COUNT(*) AS `Value` FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = {0} AND column_name = {1}", table, column)
+            .SingleAsync();
+        if (exists > 0) return;
+        await _db.Database.ExecuteSqlRawAsync(alterSql);
     }
 }

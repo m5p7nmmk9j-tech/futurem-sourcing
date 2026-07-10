@@ -68,6 +68,13 @@ public class ProductsController : ControllerBase
         entity.Unit = input.Unit;
         entity.CustomerItemNo = input.CustomerItemNo;
         entity.ImageUrl = input.ImageUrl;
+        entity.PurchasePrice = input.PurchasePrice;
+        entity.CartonQty = input.CartonQty;
+        entity.CartonLengthCm = input.CartonLengthCm;
+        entity.CartonWidthCm = input.CartonWidthCm;
+        entity.CartonHeightCm = input.CartonHeightCm;
+        entity.CartonGwKg = input.CartonGwKg;
+        entity.CartonNwKg = input.CartonNwKg;
         entity.Remark = input.Remark;
         entity.UpdatedAt = DateTime.Now;
 
