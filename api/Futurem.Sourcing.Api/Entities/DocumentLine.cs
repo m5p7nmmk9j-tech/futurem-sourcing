@@ -12,46 +12,46 @@ public class DocumentLine
     public string? ProductName { get; set; }
     public string? Unit { get; set; } = "PCS";
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal Quantity { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal UnitPrice { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal Amount { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal CartonQty { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal Cartons { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal CartonLengthCm { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal CartonWidthCm { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal CartonHeightCm { get; set; }
 
-    [Column(TypeName = "decimal(18,6)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal CartonCbm { get; set; }
 
-    [Column(TypeName = "decimal(18,6)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal TotalCbm { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal CartonGwKg { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal TotalGwKg { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal CartonNwKg { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal TotalNwKg { get; set; }
 
     public string? SupplierItemNo { get; set; }
