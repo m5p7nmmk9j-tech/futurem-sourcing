@@ -29,6 +29,7 @@
             <el-menu-item index="/customer-orders">客户订单 CO</el-menu-item>
             <el-menu-item index="/purchase-orders">采购订单 PO</el-menu-item>
             <el-menu-item index="/so-orders">客户汇总单</el-menu-item>
+            <el-menu-item index="/delivery-notices">供应商送货通知</el-menu-item>
             <el-menu-item index="/receiving-orders">收货单</el-menu-item>
             <el-menu-item index="/qc-orders">验货单</el-menu-item>
             <el-menu-item index="/container-loads">装柜单</el-menu-item>
@@ -62,7 +63,7 @@
           <el-autocomplete
             v-model="keyword"
             :fetch-suggestions="querySearch"
-            placeholder="全局搜索：客户条码 / 客户货号 / PO / 汇总单 / 柜号 / 出运 / 财务"
+            placeholder="全局搜索：客户条码 / PO / 汇总单 / 送货通知 / 柜号 / 出运 / 财务"
             value-key="label"
             clearable
             style="width: 570px"
