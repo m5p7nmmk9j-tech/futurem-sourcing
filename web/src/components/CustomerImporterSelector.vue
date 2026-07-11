@@ -62,10 +62,7 @@ function updateValue(rawValue: unknown) {
   select(Number(rawValue || 0) || null)
 }
 
-watch(() => props.customerId, async (current, previous) => {
-  if (previous !== undefined && current !== previous) emit('update:modelValue', null)
-  await load()
-}, { immediate: true })
+watch(() => props.customerId, load, { immediate: true })
 </script>
 
 <style scoped>
