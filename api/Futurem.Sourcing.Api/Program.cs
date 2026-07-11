@@ -12,7 +12,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "FUTUREM Enterprise API", Version = "v1.0.0" });
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "FUTUREM Enterprise API", Version = "v1.1.0" });
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -35,6 +35,10 @@ builder.Services.AddSwaggerGen(options =>
 });
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<DatabaseUpgradeService>();
+builder.Services.AddScoped<ShipmentMeasurementService>();
+builder.Services.AddScoped<ShipmentExpenseService>();
+builder.Services.AddScoped<SupplierPrepaymentService>();
+builder.Services.AddScoped<ShipmentFinanceSyncService>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? builder.Configuration.GetConnectionString("Default")
@@ -45,7 +49,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 });
 
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "FUTUREM_ENTERPRISE_DEV_SECRET_CHANGE_ME_32_CHARS";
+var jwtKey = builder.Configuration["Jwt:Key"] ?? new string('X', 40);
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "FUTUREM";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "FUTUREM_WEB";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
@@ -91,7 +95,7 @@ app.MapGet("/", () => Results.Ok(new
 {
     name = "FUTUREM Enterprise Sourcing API",
     status = "running",
-    version = "1.0.0-rc"
+    version = "1.1.0"
 }));
 
 app.Run();
