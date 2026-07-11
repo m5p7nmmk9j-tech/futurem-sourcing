@@ -80,9 +80,6 @@ public sealed class SummaryReservationService
             item.ReleaseReason = reason.Trim();
             item.UpdatedAt = DateTime.Now;
 
-            // Persist the released status before recalculating. EF Core's InMemory
-            // provider evaluates the aggregate query against its persisted store,
-            // while relational providers keep both writes inside this transaction.
             await _db.SaveChangesAsync();
             await RecalculateSummaryAsync(summary.Id);
             await _db.SaveChangesAsync();
@@ -207,9 +204,12 @@ public sealed class SummaryReservationService
     {
         var summary = await _db.SummaryOrders.FirstOrDefaultAsync(x => x.Id == summaryOrderId)
             ?? throw new KeyNotFoundException("客户汇总单不存在");
-        var items = await _db.SummaryOrderItems
-            .Where(x => x.SummaryOrderId == summary.Id && ActiveReservationStatuses.Contains(x.ReservationStatus))
+        var summaryItems = await _db.SummaryOrderItems
+            .Where(x => x.SummaryOrderId == summary.Id)
             .ToListAsync();
+        var items = summaryItems
+            .Where(x => ActiveReservationStatuses.Contains(x.ReservationStatus))
+            .ToList();
 
         if (items.Count == 0)
         {
