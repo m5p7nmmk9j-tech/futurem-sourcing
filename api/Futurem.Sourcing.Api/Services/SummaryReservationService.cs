@@ -81,7 +81,7 @@ public sealed class SummaryReservationService
             item.UpdatedAt = DateTime.Now;
 
             await _db.SaveChangesAsync();
-            await RecalculateSummaryAsync(summary.Id);
+            await RecalculateSummaryAsync(summary.Id, item.Id);
             await _db.SaveChangesAsync();
             await _audit.WriteAsync(
                 nameof(SummaryOrderItem),
@@ -200,7 +200,7 @@ public sealed class SummaryReservationService
         }
     }
 
-    public async Task RecalculateSummaryAsync(long summaryOrderId)
+    public async Task RecalculateSummaryAsync(long summaryOrderId, long? excludedItemId = null)
     {
         var summary = await _db.SummaryOrders.FirstOrDefaultAsync(x => x.Id == summaryOrderId)
             ?? throw new KeyNotFoundException("客户汇总单不存在");
@@ -208,7 +208,8 @@ public sealed class SummaryReservationService
             .Where(x => x.SummaryOrderId == summary.Id)
             .ToListAsync();
         var items = summaryItems
-            .Where(x => ActiveReservationStatuses.Contains(x.ReservationStatus))
+            .Where(x => (!excludedItemId.HasValue || x.Id != excludedItemId.Value) &&
+                        ActiveReservationStatuses.Contains(x.ReservationStatus))
             .ToList();
 
         if (items.Count == 0)
