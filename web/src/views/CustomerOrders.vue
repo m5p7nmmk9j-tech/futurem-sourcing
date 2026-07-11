@@ -86,7 +86,7 @@
           <el-col :span="12"><el-form-item label="预计交期"><el-date-picker v-model="poForm.expectedDeliveryDate" type="date" value-format="YYYY-MM-DD" style="width:100%" /></el-form-item></el-col>
         </el-row>
       </el-form>
-      <el-table ref="poTable" :data="poAvailableRows" border stripe @selection-change="selection => poSelectedRows = selection">
+      <el-table ref="poTable" :data="poAvailableRows" border stripe @selection-change="handlePoSelection">
         <el-table-column type="selection" width="50" />
         <el-table-column prop="product.customerItemNo" label="客户货号" width="140" />
         <el-table-column prop="product.customerBarcode" label="客户条码" width="150" />
@@ -188,6 +188,7 @@ async function openPoDialog(row: any) {
   poDialogVisible.value = true
 }
 function clearPoSelection() { poSelectedRows.value = []; poTable.value?.clearSelection() }
+function handlePoSelection(selection: any[]) { poSelectedRows.value = selection }
 async function generatePo() {
   if (!poForm.supplierId) return ElMessage.warning('请选择商品供应商')
   if (!poSelectedRows.value.length) return ElMessage.warning('请选择至少一个订单商品')
