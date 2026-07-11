@@ -58,6 +58,7 @@ public class DocumentLine
     public string? CustomerItemNo { get; set; }
     public long? OrderProductId { get; set; }
     public long? SourceDocumentLineId { get; set; }
+    public long? DeliveryNoticeLineId { get; set; }
     public long? CustomerId { get; set; }
     public long? SupplierId { get; set; }
 
