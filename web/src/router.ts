@@ -3,8 +3,9 @@ import MainLayout from './layouts/MainLayout.vue'
 import Dashboard from './views/Dashboard.vue'
 import Customers from './views/Customers.vue'
 import Suppliers from './views/Suppliers.vue'
-import Products from './views/Products.vue'
-import Markets from './views/Markets.vue'
+import CustomerHistoryProducts from './views/CustomerHistoryProducts.vue'
+import CustomerImporterProfiles from './views/CustomerImporterProfiles.vue'
+import LabelMarkTemplates from './views/LabelMarkTemplates.vue'
 import Rfqs from './views/Rfqs.vue'
 import CustomerOrders from './views/CustomerOrders.vue'
 import PurchaseOrders from './views/PurchaseOrders.vue'
@@ -36,8 +37,10 @@ const router = createRouter({
         { path: '', component: Dashboard },
         { path: 'customers', component: Customers },
         { path: 'suppliers', component: Suppliers },
-        { path: 'products', component: Products },
-        { path: 'markets', component: Markets },
+        { path: 'products', redirect: '/customer-history-products' },
+        { path: 'customer-history-products', component: CustomerHistoryProducts },
+        { path: 'customer-importers', component: CustomerImporterProfiles },
+        { path: 'label-mark-templates', component: LabelMarkTemplates },
         { path: 'rfqs', component: Rfqs },
         { path: 'customer-orders', component: CustomerOrders },
         { path: 'purchase-orders', component: PurchaseOrders },
