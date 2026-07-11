@@ -58,7 +58,7 @@ export function calculateDocumentLine(input: DocumentLineCalcInput): DocumentLin
   const cartonHeightCm = round2(num(input.cartonHeightCm))
   const cartonGwKg = round2(num(input.cartonGwKg))
   const cartonNwKg = round2(num(input.cartonNwKg))
-  const cartonCbm = round2(cartonLengthCm * cartonWidthCm * cartonHeightCm / 1000000)
+  const rawCartonCbm = cartonLengthCm * cartonWidthCm * cartonHeightCm / 1000000
 
   return {
     quantity,
@@ -71,8 +71,8 @@ export function calculateDocumentLine(input: DocumentLineCalcInput): DocumentLin
     cartonGwKg,
     cartonNwKg,
     amount: round2(quantity * unitPrice),
-    cartonCbm,
-    totalCbm: round2(cartonCbm * cartons),
+    cartonCbm: round2(rawCartonCbm),
+    totalCbm: round2(rawCartonCbm * cartons),
     totalGwKg: round2(cartonGwKg * cartons),
     totalNwKg: round2(cartonNwKg * cartons),
   }
