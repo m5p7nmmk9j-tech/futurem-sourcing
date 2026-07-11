@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<CustomerOrder> CustomerOrders => Set<CustomerOrder>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
     public DbSet<SummaryOrder> SummaryOrders => Set<SummaryOrder>();
+    public DbSet<SummaryOrderItem> SummaryOrderItems => Set<SummaryOrderItem>();
     public DbSet<ReceivingOrder> ReceivingOrders => Set<ReceivingOrder>();
     public DbSet<QcOrder> QcOrders => Set<QcOrder>();
     public DbSet<ContainerLoad> ContainerLoads => Set<ContainerLoad>();
@@ -65,6 +66,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<CustomerOrder>().ToTable("customer_orders");
         modelBuilder.Entity<PurchaseOrder>().ToTable("purchase_orders");
         modelBuilder.Entity<SummaryOrder>().ToTable("summary_orders");
+        modelBuilder.Entity<SummaryOrderItem>().ToTable("summary_order_items");
         modelBuilder.Entity<ReceivingOrder>().ToTable("receiving_orders");
         modelBuilder.Entity<QcOrder>().ToTable("qc_orders");
         modelBuilder.Entity<ContainerLoad>().ToTable("container_loads");
@@ -102,6 +104,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<OrderProductImage>().HasIndex(x => new { x.OrderProductId, x.ImageType });
         modelBuilder.Entity<CustomerImporterProfile>().HasIndex(x => new { x.CustomerId, x.Status, x.IsDefault });
         modelBuilder.Entity<PrintTemplate>().HasIndex(x => new { x.CustomerId, x.TemplateType, x.Status });
+        modelBuilder.Entity<SummaryOrderItem>().HasIndex(x => new { x.PurchaseOrderLineId, x.ReservationStatus });
+        modelBuilder.Entity<SummaryOrderItem>().HasIndex(x => new { x.SummaryOrderId, x.ReservationStatus });
         modelBuilder.Entity<ShipmentExpense>().HasIndex(x => new { x.ShipmentId, x.ExpenseCode }).IsUnique();
         modelBuilder.Entity<ShipmentExpense>().HasIndex(x => new { x.ShipmentId, x.NormalizedExpenseName }).IsUnique();
         modelBuilder.Entity<FinanceRecord>().HasIndex(x => x.ShipmentExpenseId).IsUnique();
