@@ -1,6 +1,7 @@
 using Futurem.Sourcing.Api.Data;
 using Futurem.Sourcing.Api.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Futurem.Sourcing.Api.Services;
 
@@ -30,80 +31,102 @@ public sealed class OrderProductService
         if (targetOrder.CustomerId != source.CustomerId)
             throw new BusinessRuleException("ORDER_PRODUCT_CUSTOMER_MISMATCH", "历史商品与目标订单客户不一致");
 
-        var effectiveSupplierId = supplierId > 0 ? supplierId : source.SupplierId;
-        var copy = new OrderProduct
-        {
-            CustomerId = targetOrder.CustomerId,
-            SupplierId = effectiveSupplierId,
-            SourceOrderProductId = source.Id,
-            SourceCustomerOrderId = targetOrder.Id,
-            SystemSku = source.SystemSku,
-            CustomerItemNo = source.CustomerItemNo,
-            CustomerBarcode = source.CustomerBarcode,
-            SupplierItemNo = source.SupplierItemNo,
-            NameCn = source.NameCn,
-            NameEn = source.NameEn,
-            NameEs = source.NameEs,
-            Specification = source.Specification,
-            Color = source.Color,
-            Unit = source.Unit,
-            PurchaseUnitPrice = source.PurchaseUnitPrice,
-            SalesUnitPrice = source.SalesUnitPrice,
-            CartonQty = source.CartonQty,
-            CartonLengthCm = source.CartonLengthCm,
-            CartonWidthCm = source.CartonWidthCm,
-            CartonHeightCm = source.CartonHeightCm,
-            CartonCbm = source.CartonCbm,
-            CartonGwKg = source.CartonGwKg,
-            CartonNwKg = source.CartonNwKg,
-            ImporterProfileId = targetOrder.ImporterProfileId ?? source.ImporterProfileId,
-            ImporterSnapshotJson = PreferTargetSnapshot(targetOrder.ImporterSnapshotJson, source.ImporterSnapshotJson),
-            LabelTemplateId = targetOrder.LabelTemplateId ?? source.LabelTemplateId,
-            LabelTemplateSnapshotJson = PreferTargetSnapshot(targetOrder.LabelTemplateSnapshotJson, source.LabelTemplateSnapshotJson),
-            MarkTemplateId = targetOrder.MarkTemplateId ?? source.MarkTemplateId,
-            MarkTemplateSnapshotJson = PreferTargetSnapshot(targetOrder.MarkTemplateSnapshotJson, source.MarkTemplateSnapshotJson),
-            BatchCode = DateTime.Today.ToString("yyyyMMdd"),
-            Status = "draft",
-            LockedAt = null,
-            NeedsReview = source.NeedsReview,
-            Remark = $"复制自订单商品 {source.Id}",
-            CreatedAt = DateTime.Now
-        };
+        var duplicateBarcode = await _db.OrderProducts.AnyAsync(x =>
+            x.SourceCustomerOrderId == targetOrder.Id &&
+            x.CustomerBarcode == source.CustomerBarcode);
+        if (duplicateBarcode)
+            throw new BusinessRuleException(
+                "CUSTOMER_BARCODE_DUPLICATED",
+                "目标订单内已存在相同客户条码");
 
-        _db.OrderProducts.Add(copy);
-        await _db.SaveChangesAsync();
-
-        var sourceImages = await _db.OrderProductImages
-            .Where(x => x.OrderProductId == source.Id)
-            .OrderBy(x => x.SortNo)
-            .ToListAsync();
-        foreach (var image in sourceImages)
+        await using var transaction = await BeginTransactionIfSupportedAsync();
+        try
         {
-            _db.OrderProductImages.Add(new OrderProductImage
+            var effectiveSupplierId = supplierId > 0 ? supplierId : source.SupplierId;
+            var copy = new OrderProduct
             {
-                OrderProductId = copy.Id,
-                ImageUrl = image.ImageUrl,
-                ImageType = image.ImageType,
-                SortNo = image.SortNo,
-                FileName = image.FileName,
-                ContentType = image.ContentType,
-                Remark = image.Remark,
+                CustomerId = targetOrder.CustomerId,
+                SupplierId = effectiveSupplierId,
+                SourceOrderProductId = source.Id,
+                SourceCustomerOrderId = targetOrder.Id,
+                SystemSku = source.SystemSku,
+                CustomerItemNo = source.CustomerItemNo,
+                CustomerBarcode = source.CustomerBarcode,
+                SupplierItemNo = source.SupplierItemNo,
+                NameCn = source.NameCn,
+                NameEn = source.NameEn,
+                NameEs = source.NameEs,
+                Specification = source.Specification,
+                Color = source.Color,
+                Unit = source.Unit,
+                PurchaseUnitPrice = source.PurchaseUnitPrice,
+                SalesUnitPrice = source.SalesUnitPrice,
+                CartonQty = source.CartonQty,
+                CartonLengthCm = source.CartonLengthCm,
+                CartonWidthCm = source.CartonWidthCm,
+                CartonHeightCm = source.CartonHeightCm,
+                CartonCbm = source.CartonCbm,
+                CartonGwKg = source.CartonGwKg,
+                CartonNwKg = source.CartonNwKg,
+                ImporterProfileId = targetOrder.ImporterProfileId ?? source.ImporterProfileId,
+                ImporterSnapshotJson = PreferTargetSnapshot(targetOrder.ImporterSnapshotJson, source.ImporterSnapshotJson),
+                LabelTemplateId = targetOrder.LabelTemplateId ?? source.LabelTemplateId,
+                LabelTemplateSnapshotJson = PreferTargetSnapshot(targetOrder.LabelTemplateSnapshotJson, source.LabelTemplateSnapshotJson),
+                MarkTemplateId = targetOrder.MarkTemplateId ?? source.MarkTemplateId,
+                MarkTemplateSnapshotJson = PreferTargetSnapshot(targetOrder.MarkTemplateSnapshotJson, source.MarkTemplateSnapshotJson),
+                BatchCode = DateTime.Today.ToString("yyyyMMdd"),
+                Status = "draft",
+                LockedAt = null,
+                NeedsReview = source.NeedsReview,
+                Remark = $"复制自订单商品 {source.Id}",
                 CreatedAt = DateTime.Now
-            });
+            };
+
+            _db.OrderProducts.Add(copy);
+            await _db.SaveChangesAsync();
+
+            var sourceImages = await _db.OrderProductImages
+                .Where(x => x.OrderProductId == source.Id)
+                .OrderBy(x => x.SortNo)
+                .ToListAsync();
+            foreach (var image in sourceImages)
+            {
+                _db.OrderProductImages.Add(new OrderProductImage
+                {
+                    OrderProductId = copy.Id,
+                    ImageUrl = image.ImageUrl,
+                    ImageType = image.ImageType,
+                    SortNo = image.SortNo,
+                    FileName = image.FileName,
+                    ContentType = image.ContentType,
+                    Remark = image.Remark,
+                    CreatedAt = DateTime.Now
+                });
+            }
+
+            var sourceLines = await _db.DocumentLines
+                .Where(x => !x.IsDeleted && x.DocumentType == "CO" &&
+                            x.DocumentId == source.SourceCustomerOrderId &&
+                            x.OrderProductId == source.Id)
+                .OrderBy(x => x.SortNo)
+                .ToListAsync();
+            foreach (var sourceLine in sourceLines)
+                _db.DocumentLines.Add(CloneLineForOrder(sourceLine, targetOrder, copy));
+
+            await _db.SaveChangesAsync();
+            if (transaction is not null) await transaction.CommitAsync();
+            return copy;
         }
-
-        var sourceLines = await _db.DocumentLines
-            .Where(x => !x.IsDeleted && x.DocumentType == "CO" &&
-                        x.DocumentId == source.SourceCustomerOrderId &&
-                        x.OrderProductId == source.Id)
-            .OrderBy(x => x.SortNo)
-            .ToListAsync();
-        foreach (var sourceLine in sourceLines)
-            _db.DocumentLines.Add(CloneLineForOrder(sourceLine, targetOrder, copy));
-
-        await _db.SaveChangesAsync();
-        return copy;
+        catch
+        {
+            if (transaction is not null) await transaction.RollbackAsync();
+            _db.ChangeTracker.Clear();
+            throw;
+        }
     }
+
+    private async Task<IDbContextTransaction?> BeginTransactionIfSupportedAsync()
+        => _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
 
     private static string PreferTargetSnapshot(string? target, string source)
         => string.IsNullOrWhiteSpace(target) || target.Trim() == "{}" ? source : target;
