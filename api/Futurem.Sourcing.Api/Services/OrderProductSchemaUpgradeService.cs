@@ -144,13 +144,11 @@ public sealed class OrderProductSchemaUpgradeService
             await AddColumnIfMissingAsync(table, "mark_template_snapshot_json", $"ALTER TABLE `{table}` ADD COLUMN `mark_template_snapshot_json` MEDIUMTEXT NULL");
             await AddColumnIfMissingAsync(table, "confirmed_at", $"ALTER TABLE `{table}` ADD COLUMN `confirmed_at` DATETIME NULL");
 
-            await _db.Database.ExecuteSqlRawAsync($"""
-                UPDATE `{table}`
-                SET `currency` = 'RMB',
-                    `importer_snapshot_json` = COALESCE(`importer_snapshot_json`, '{{}}'),
-                    `label_template_snapshot_json` = COALESCE(`label_template_snapshot_json`, '{{}}'),
-                    `mark_template_snapshot_json` = COALESCE(`mark_template_snapshot_json`, '{{}}')
-                """);
+            await _db.Database.ExecuteSqlRawAsync(
+                $"UPDATE `{table}` SET `currency` = 'RMB', " +
+                "`importer_snapshot_json` = COALESCE(`importer_snapshot_json`, '{}'), " +
+                "`label_template_snapshot_json` = COALESCE(`label_template_snapshot_json`, '{}'), " +
+                "`mark_template_snapshot_json` = COALESCE(`mark_template_snapshot_json`, '{}')");
         }
     }
 
