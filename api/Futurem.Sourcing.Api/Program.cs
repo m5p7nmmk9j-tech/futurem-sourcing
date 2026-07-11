@@ -38,6 +38,8 @@ builder.Services.AddScoped<DatabaseUpgradeService>();
 builder.Services.AddScoped<AuditSchemaUpgradeService>();
 builder.Services.AddScoped<OrderProductSchemaUpgradeService>();
 builder.Services.AddScoped<OrderProductIndexUpgradeService>();
+builder.Services.AddScoped<SummaryReservationSchemaUpgradeService>();
+builder.Services.AddScoped<SummaryReservationService>();
 builder.Services.AddScoped<ShipmentMeasurementService>();
 builder.Services.AddScoped<ShipmentExpenseService>();
 builder.Services.AddScoped<SupplierPrepaymentService>();
@@ -92,6 +94,8 @@ using (var scope = app.Services.CreateScope())
     await orderProductUpgrade.UpgradeAsync();
     var orderProductIndexUpgrade = scope.ServiceProvider.GetRequiredService<OrderProductIndexUpgradeService>();
     await orderProductIndexUpgrade.UpgradeAsync();
+    var summaryReservationUpgrade = scope.ServiceProvider.GetRequiredService<SummaryReservationSchemaUpgradeService>();
+    await summaryReservationUpgrade.UpgradeAsync();
 }
 
 app.UseMiddleware<BusinessRuleExceptionMiddleware>();
