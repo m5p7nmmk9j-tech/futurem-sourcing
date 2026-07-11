@@ -70,6 +70,8 @@ public class SummaryReservationServiceTests
 
         await service.ReleaseAsync(first.Id, "移出汇总单", 7);
         var second = await service.ReserveAsync(fixture.Summary2.Id, fixture.PoLine.Id, 10m, 8);
+        await db.Entry(fixture.Summary1).ReloadAsync();
+        await db.Entry(fixture.Summary2).ReloadAsync();
 
         Assert.Equal("released", first.ReservationStatus);
         Assert.Equal(10m, second.ReservedCartons);
