@@ -13,5 +13,9 @@ public class AuditLog : BaseEntity
     public string UserAgent { get; set; } = string.Empty;
     public string BeforeJson { get; set; } = string.Empty;
     public string AfterJson { get; set; } = string.Empty;
+    public string? Reason { get; set; }
+    public string? CorrelationId { get; set; }
+    public string? SourceDocumentType { get; set; }
+    public long? SourceDocumentId { get; set; }
     public string Result { get; set; } = "success";
 }
