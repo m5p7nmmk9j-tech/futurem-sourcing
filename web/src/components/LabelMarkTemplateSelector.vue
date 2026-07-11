@@ -8,7 +8,7 @@
         clearable
         placeholder="选择商品标签模板"
         style="width: 100%"
-        @update:model-value="value => select('label', value)"
+        @update:model-value="updateLabel"
       >
         <el-option
           v-for="item in labels"
@@ -26,7 +26,7 @@
         clearable
         placeholder="选择外箱唛头模板"
         style="width: 100%"
-        @update:model-value="value => select('mark', value)"
+        @update:model-value="updateMark"
       >
         <el-option
           v-for="item in marks"
@@ -85,6 +85,9 @@ function select(type: 'label' | 'mark', rawValue: unknown) {
   if (type === 'label') emit('update:labelTemplateId', value)
   else emit('update:markTemplateId', value)
 }
+
+function updateLabel(rawValue: unknown) { select('label', rawValue) }
+function updateMark(rawValue: unknown) { select('mark', rawValue) }
 
 watch(() => props.customerId, load, { immediate: true })
 </script>
