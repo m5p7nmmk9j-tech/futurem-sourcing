@@ -15,13 +15,16 @@ public class CustomerSummariesController : ControllerBase
 
     private readonly AppDbContext _db;
     private readonly SummaryReservationService _reservations;
+    private readonly DeliveryNoticeService _deliveryNotices;
 
     public CustomerSummariesController(
         AppDbContext db,
-        SummaryReservationService reservations)
+        SummaryReservationService reservations,
+        DeliveryNoticeService deliveryNotices)
     {
         _db = db;
         _reservations = reservations;
+        _deliveryNotices = deliveryNotices;
     }
 
     public sealed record ReserveRequest(long PurchaseOrderLineId, decimal Cartons);
@@ -166,8 +169,21 @@ public class CustomerSummariesController : ControllerBase
         => await _reservations.ReleaseAsync(itemId, request.Reason, CurrentUserId());
 
     [HttpPost("{id:long}/confirm")]
-    public async Task<ActionResult<SummaryOrder>> Confirm(long id)
-        => await _reservations.ConfirmAsync(id, CurrentUserId());
+    public async Task<IActionResult> Confirm(long id)
+    {
+        var draft = await _db.SummaryOrders.FindAsync(id);
+        if (draft is null) return NotFound();
+        if (!draft.WarehouseId.HasValue || draft.WarehouseId.Value <= 0 || !draft.PlannedDeliveryDate.HasValue)
+            throw new BusinessRuleException("SUMMARY_DELIVERY_PLAN_REQUIRED", "确认汇总单前必须选择计划送货日期和收货仓库");
+
+        var summary = await _reservations.ConfirmAsync(id, CurrentUserId());
+        var notices = await _deliveryNotices.GenerateForConfirmedSummaryAsync(
+            summary.Id,
+            summary.PlannedDeliveryDate.Value,
+            summary.WarehouseId.Value,
+            CurrentUserId());
+        return Ok(new { summary, deliveryNotices = notices });
+    }
 
     [HttpPost("{id:long}/append-items")]
     public async Task<ActionResult<SummaryOrder>> Append(long id, AppendRequest request)
