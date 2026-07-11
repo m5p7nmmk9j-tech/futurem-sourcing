@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "rm -rf .test-dist && esbuild tests/documentLineCalc.test.ts --bundle --platform=node --format=esm --outfile=.test-dist/documentLineCalc.test.mjs && esbuild tests/shipmentFinance.test.ts --bundle --platform=node --format=esm --outfile=.test-dist/shipmentFinance.test.mjs && node .test-dist/documentLineCalc.test.mjs && node .test-dist/shipmentFinance.test.mjs"
+    "test": "rm -rf .test-dist && esbuild tests/documentLineCalc.test.ts --bundle --platform=node --format=esm --outfile=.test-dist/documentLineCalc.test.mjs && esbuild tests/shipmentFinance.test.ts --bundle --platform=node --format=esm --outfile=.test-dist/shipmentFinance.test.mjs && esbuild tests/barcodeImage.test.ts --bundle --platform=node --format=esm --outfile=.test-dist/barcodeImage.test.mjs && node .test-dist/documentLineCalc.test.mjs && node .test-dist/shipmentFinance.test.mjs && node .test-dist/barcodeImage.test.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
