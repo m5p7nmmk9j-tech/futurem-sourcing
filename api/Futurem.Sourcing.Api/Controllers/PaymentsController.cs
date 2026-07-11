@@ -11,7 +11,13 @@ namespace Futurem.Sourcing.Api.Controllers;
 public class PaymentsController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public PaymentsController(AppDbContext db) { _db = db; }
+    private readonly SupplierPrepaymentService _prepaymentService;
+
+    public PaymentsController(AppDbContext db, SupplierPrepaymentService prepaymentService)
+    {
+        _db = db;
+        _prepaymentService = prepaymentService;
+    }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Payment>>> List([FromQuery] string? direction, [FromQuery] long? financeRecordId, [FromQuery] long? customerId, [FromQuery] long? supplierId)
@@ -34,19 +40,30 @@ public class PaymentsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Payment>> Create(Payment input)
     {
+        input.Amount = FinanceBalanceService.Round2(input.Amount);
+        input.FeeAmount = FinanceBalanceService.Round2(input.FeeAmount);
+        if (input.Amount <= 0m) return BadRequest(new { message = "付款或收款金额必须大于 0" });
+
+        var finance = await _db.FinanceRecords.FindAsync(input.FinanceRecordId);
+        if (finance == null) return BadRequest(new { message = "财务记录不存在" });
+        var outstanding = FinanceBalanceService.Outstanding(finance);
+        if (input.Amount > outstanding)
+            return BadRequest(new { message = $"金额不能超过未收/未付余额 {outstanding:F2}" });
+
         input.Id = 0;
         input.No = string.IsNullOrWhiteSpace(input.No) ? NumberService.NewNo(input.Direction == "pay" ? "PAY" : "REC") : input.No;
+        input.TargetType = finance.TargetType;
+        input.TargetId = finance.TargetId;
+        input.CustomerId = finance.CustomerId;
+        input.SupplierId = finance.SupplierId;
+        input.Currency = finance.Currency;
         input.CreatedAt = DateTime.Now;
         _db.Payments.Add(input);
 
-        var finance = await _db.FinanceRecords.FindAsync(input.FinanceRecordId);
-        if (finance != null)
-        {
-            finance.PaidAmount += input.Amount;
-            finance.Status = finance.PaidAmount <= 0 ? "pending" : finance.PaidAmount < finance.Amount ? "partial" : "done";
-            finance.UpdatedAt = DateTime.Now;
-            await SyncSourceDocumentAsync(finance);
-        }
+        finance.PaidAmount = FinanceBalanceService.Round2(finance.PaidAmount + input.Amount);
+        FinanceBalanceService.RefreshStatus(finance);
+        finance.UpdatedAt = DateTime.Now;
+        await SyncSourceDocumentAsync(finance);
 
         if (input.BankAccountId.HasValue)
         {
@@ -73,9 +90,13 @@ public class PaymentsController : ControllerBase
         var finance = await _db.FinanceRecords.FindAsync(entity.FinanceRecordId);
         if (finance != null)
         {
-            finance.PaidAmount -= entity.Amount;
-            if (finance.PaidAmount < 0) finance.PaidAmount = 0;
-            finance.Status = finance.PaidAmount <= 0 ? "pending" : finance.PaidAmount < finance.Amount ? "partial" : "done";
+            finance.PaidAmount = Math.Max(0m, FinanceBalanceService.Round2(finance.PaidAmount - entity.Amount));
+            if (finance.TargetType == "SHIPMENT_EXPENSE")
+            {
+                var desiredTransfer = Math.Max(0m, FinanceBalanceService.Round2(finance.PaidAmount - finance.Amount));
+                await _prepaymentService.UpsertOverpaymentAsync(finance, desiredTransfer);
+            }
+            FinanceBalanceService.RefreshStatus(finance);
             finance.UpdatedAt = DateTime.Now;
             await SyncSourceDocumentAsync(finance);
         }
@@ -113,6 +134,15 @@ public class PaymentsController : ControllerBase
             {
                 po.PayStatus = finance.Status == "done" ? "paid" : finance.Status == "partial" ? "partial" : "unpaid";
                 po.UpdatedAt = DateTime.Now;
+            }
+        }
+        else if (finance.TargetType == "SHIPMENT_EXPENSE" && finance.ShipmentExpenseId.HasValue)
+        {
+            var expense = await _db.ShipmentExpenses.FindAsync(finance.ShipmentExpenseId.Value);
+            if (expense != null)
+            {
+                expense.FinanceStatus = finance.Status;
+                expense.UpdatedAt = DateTime.Now;
             }
         }
     }
