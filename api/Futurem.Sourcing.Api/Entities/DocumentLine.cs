@@ -56,6 +56,20 @@ public class DocumentLine
 
     public string? SupplierItemNo { get; set; }
     public string? CustomerItemNo { get; set; }
+    public long? OrderProductId { get; set; }
+    public long? SourceDocumentLineId { get; set; }
+    public long? CustomerId { get; set; }
+    public long? SupplierId { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal PurchaseUnitPriceSnapshot { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal SalesUnitPriceSnapshot { get; set; }
+
+    public long? WarehouseId { get; set; }
+    public long? WarehouseLocationId { get; set; }
+    public long? InventoryLotId { get; set; }
     public string? Remark { get; set; }
     public int SortNo { get; set; }
     public bool IsDeleted { get; set; }
