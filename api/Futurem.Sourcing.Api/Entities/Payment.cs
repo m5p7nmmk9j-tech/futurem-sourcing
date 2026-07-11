@@ -15,13 +15,13 @@ public class Payment : BaseEntity
     public string PaymentMethod { get; set; } = "bank";
     public string Currency { get; set; } = "RMB";
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal Amount { get; set; }
 
     [Column(TypeName = "decimal(18,6)")]
     public decimal ExchangeRate { get; set; } = 1;
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal FeeAmount { get; set; }
 
     public DateTime? PaymentDate { get; set; }

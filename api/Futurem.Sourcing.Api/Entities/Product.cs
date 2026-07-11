@@ -19,24 +19,24 @@ public class Product : BaseEntity
     public string? CustomerItemNo { get; set; }
     public string? ImageUrl { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal PurchasePrice { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal CartonQty { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal CartonLengthCm { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal CartonWidthCm { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal CartonHeightCm { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal CartonGwKg { get; set; }
 
-    [Column(TypeName = "decimal(18,4)")]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal CartonNwKg { get; set; }
 }

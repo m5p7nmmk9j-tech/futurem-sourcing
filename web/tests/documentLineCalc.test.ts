@@ -67,7 +67,7 @@ const summary = calculateDocumentLineSummary([
 
 assert.equal(summary.quantity, 1200)
 assert.equal(summary.cartons, 14)
-assert.equal(summary.cbm, 0.196)
+assert.equal(summary.cbm, 0.2)
 assert.equal(summary.gwKg, 124)
 assert.equal(summary.nwKg, 100)
 

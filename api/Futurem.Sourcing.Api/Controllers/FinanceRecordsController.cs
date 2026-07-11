@@ -36,9 +36,11 @@ public class FinanceRecordsController : ControllerBase
         {
             totalAmount = records.Sum(x => x.Amount),
             paidAmount = records.Sum(x => x.PaidAmount),
-            balanceAmount = records.Sum(x => x.Amount - x.PaidAmount),
-            receivableBalance = records.Where(x => x.RecordType == "receivable").Sum(x => x.Amount - x.PaidAmount),
-            payableBalance = records.Where(x => x.RecordType == "payable").Sum(x => x.Amount - x.PaidAmount),
+            prepaymentAppliedAmount = records.Sum(x => x.PrepaymentAppliedAmount),
+            overpaymentTransferredAmount = records.Sum(x => x.OverpaymentTransferredAmount),
+            balanceAmount = records.Sum(FinanceBalanceService.Outstanding),
+            receivableBalance = records.Where(x => x.RecordType == "receivable").Sum(FinanceBalanceService.Outstanding),
+            payableBalance = records.Where(x => x.RecordType == "payable").Sum(FinanceBalanceService.Outstanding),
             pendingCount = records.Count(x => x.Status == "pending"),
             partialCount = records.Count(x => x.Status == "partial"),
             doneCount = records.Count(x => x.Status == "done")
@@ -55,23 +57,26 @@ public class FinanceRecordsController : ControllerBase
 
         var soIncome = records.Where(x => x.RecordType == "receivable" && x.TargetType == "SO").Sum(x => x.Amount);
         var poCost = records.Where(x => x.RecordType == "payable" && x.TargetType == "PO").Sum(x => x.Amount);
+        var shipmentExpense = records.Where(x => x.RecordType == "payable" && x.TargetType == "SHIPMENT_EXPENSE").Sum(x => x.Amount);
         var expense = records.Where(x => x.RecordType == "expense").Sum(x => x.Amount);
         var otherIncome = records.Where(x => x.RecordType == "income").Sum(x => x.Amount);
         var grossProfit = soIncome - poCost;
-        var netProfit = soIncome + otherIncome - poCost - expense;
+        var netProfit = soIncome + otherIncome - poCost - shipmentExpense - expense;
         var profitRate = soIncome == 0 ? 0 : Math.Round(netProfit / soIncome * 100, 2);
 
         return new
         {
             soIncome,
             poCost,
+            shipmentExpense,
             expense,
             otherIncome,
             grossProfit,
             netProfit,
             profitRate,
             receivableCollected = records.Where(x => x.RecordType == "receivable" && x.TargetType == "SO").Sum(x => x.PaidAmount),
-            payablePaid = records.Where(x => x.RecordType == "payable" && x.TargetType == "PO").Sum(x => x.PaidAmount)
+            payablePaid = records.Where(x => x.RecordType == "payable").Sum(x => x.PaidAmount),
+            prepaymentApplied = records.Where(x => x.RecordType == "payable").Sum(x => x.PrepaymentAppliedAmount)
         };
     }
 
@@ -83,7 +88,7 @@ public class FinanceRecordsController : ControllerBase
         if (customerId.HasValue) query = query.Where(x => x.CustomerId == customerId.Value);
         if (supplierId.HasValue) query = query.Where(x => x.SupplierId == supplierId.Value);
         var records = await query.ToListAsync();
-        decimal Balance(FinanceRecord x) => x.Amount - x.PaidAmount;
+        decimal Balance(FinanceRecord x) => FinanceBalanceService.Outstanding(x);
         int Days(FinanceRecord x) => (today - (x.RecordDate ?? x.CreatedAt).Date).Days;
         return new
         {
@@ -107,7 +112,8 @@ public class FinanceRecordsController : ControllerBase
                 supplierId = g.Key,
                 amount = g.Sum(x => x.Amount),
                 paidAmount = g.Sum(x => x.PaidAmount),
-                balanceAmount = g.Sum(x => x.Amount - x.PaidAmount),
+                prepaymentAppliedAmount = g.Sum(x => x.PrepaymentAppliedAmount),
+                balanceAmount = g.Sum(FinanceBalanceService.Outstanding),
                 count = g.Count()
             }).OrderByDescending(x => x.balanceAmount).Cast<object>().ToList();
         }
@@ -117,9 +123,33 @@ public class FinanceRecordsController : ControllerBase
             customerId = g.Key,
             amount = g.Sum(x => x.Amount),
             paidAmount = g.Sum(x => x.PaidAmount),
-            balanceAmount = g.Sum(x => x.Amount - x.PaidAmount),
+            balanceAmount = g.Sum(FinanceBalanceService.Outstanding),
             count = g.Count()
         }).OrderByDescending(x => x.balanceAmount).Cast<object>().ToList();
+    }
+
+    [HttpGet("supplier-prepayments")]
+    public async Task<ActionResult<IEnumerable<SupplierPrepayment>>> SupplierPrepayments(
+        [FromQuery] long? supplierId,
+        [FromQuery] string? currency,
+        [FromQuery] string? status)
+    {
+        var query = _db.SupplierPrepayments.AsQueryable();
+        if (supplierId.HasValue) query = query.Where(x => x.SupplierId == supplierId.Value);
+        if (!string.IsNullOrWhiteSpace(currency)) query = query.Where(x => x.Currency == currency);
+        if (!string.IsNullOrWhiteSpace(status)) query = query.Where(x => x.Status == status);
+        return await query.OrderByDescending(x => x.Id).Take(300).ToListAsync();
+    }
+
+    [HttpGet("supplier-prepayments/{id:long}/usages")]
+    public async Task<ActionResult<IEnumerable<SupplierPrepaymentUsage>>> SupplierPrepaymentUsages(long id)
+    {
+        if (!await _db.SupplierPrepayments.AnyAsync(x => x.Id == id)) return NotFound();
+        return await _db.SupplierPrepaymentUsages
+            .Where(x => x.SupplierPrepaymentId == id)
+            .OrderBy(x => x.CreatedAt)
+            .ThenBy(x => x.Id)
+            .ToListAsync();
     }
 
     [HttpGet("{id:long}")]
@@ -134,8 +164,8 @@ public class FinanceRecordsController : ControllerBase
     {
         input.Id = 0;
         input.No = string.IsNullOrWhiteSpace(input.No) ? NumberService.NewNo("FIN") : input.No;
-        input.Status = string.IsNullOrWhiteSpace(input.Status) ? "pending" : input.Status;
         input.CreatedAt = DateTime.Now;
+        FinanceBalanceService.RefreshStatus(input);
         _db.FinanceRecords.Add(input);
         await _db.SaveChangesAsync();
         return input;
@@ -146,6 +176,9 @@ public class FinanceRecordsController : ControllerBase
     {
         var entity = await _db.FinanceRecords.FindAsync(id);
         if (entity == null) return NotFound();
+        if (entity.TargetType == "SHIPMENT_EXPENSE")
+            return BadRequest(new { message = "出运费用应付必须在出运单中修改" });
+
         entity.RecordType = input.RecordType;
         entity.TargetType = input.TargetType;
         entity.TargetId = input.TargetId;
@@ -155,9 +188,9 @@ public class FinanceRecordsController : ControllerBase
         entity.Amount = input.Amount;
         entity.PaidAmount = input.PaidAmount;
         entity.RecordDate = input.RecordDate;
-        entity.Status = input.Status;
         entity.Remark = input.Remark;
         entity.UpdatedAt = DateTime.Now;
+        FinanceBalanceService.RefreshStatus(entity);
         await _db.SaveChangesAsync();
         return entity;
     }
@@ -167,6 +200,8 @@ public class FinanceRecordsController : ControllerBase
     {
         var entity = await _db.FinanceRecords.FindAsync(id);
         if (entity == null) return NotFound();
+        if (entity.TargetType == "SHIPMENT_EXPENSE")
+            return BadRequest(new { message = "出运费用应付不能在财务模块直接删除" });
         entity.IsDeleted = true;
         entity.UpdatedAt = DateTime.Now;
         await _db.SaveChangesAsync();
