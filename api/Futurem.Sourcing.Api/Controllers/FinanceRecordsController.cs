@@ -128,6 +128,30 @@ public class FinanceRecordsController : ControllerBase
         }).OrderByDescending(x => x.balanceAmount).Cast<object>().ToList();
     }
 
+    [HttpGet("supplier-prepayments")]
+    public async Task<ActionResult<IEnumerable<SupplierPrepayment>>> SupplierPrepayments(
+        [FromQuery] long? supplierId,
+        [FromQuery] string? currency,
+        [FromQuery] string? status)
+    {
+        var query = _db.SupplierPrepayments.AsQueryable();
+        if (supplierId.HasValue) query = query.Where(x => x.SupplierId == supplierId.Value);
+        if (!string.IsNullOrWhiteSpace(currency)) query = query.Where(x => x.Currency == currency);
+        if (!string.IsNullOrWhiteSpace(status)) query = query.Where(x => x.Status == status);
+        return await query.OrderByDescending(x => x.Id).Take(300).ToListAsync();
+    }
+
+    [HttpGet("supplier-prepayments/{id:long}/usages")]
+    public async Task<ActionResult<IEnumerable<SupplierPrepaymentUsage>>> SupplierPrepaymentUsages(long id)
+    {
+        if (!await _db.SupplierPrepayments.AnyAsync(x => x.Id == id)) return NotFound();
+        return await _db.SupplierPrepaymentUsages
+            .Where(x => x.SupplierPrepaymentId == id)
+            .OrderBy(x => x.CreatedAt)
+            .ThenBy(x => x.Id)
+            .ToListAsync();
+    }
+
     [HttpGet("{id:long}")]
     public async Task<ActionResult<FinanceRecord>> Get(long id)
     {
