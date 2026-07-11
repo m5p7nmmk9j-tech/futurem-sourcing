@@ -39,6 +39,7 @@ builder.Services.AddScoped<ShipmentMeasurementService>();
 builder.Services.AddScoped<ShipmentExpenseService>();
 builder.Services.AddScoped<SupplierPrepaymentService>();
 builder.Services.AddScoped<ShipmentFinanceSyncService>();
+builder.Services.AddScoped<AuditTrailService>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? builder.Configuration.GetConnectionString("Default")
@@ -84,6 +85,7 @@ using (var scope = app.Services.CreateScope())
     await upgrade.UpgradeAsync();
 }
 
+app.UseMiddleware<BusinessRuleExceptionMiddleware>();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseCors("DevCors");
