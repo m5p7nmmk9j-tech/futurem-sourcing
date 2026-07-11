@@ -39,7 +39,7 @@ public class OrderProductSchemaTests
     }
 
     [Fact]
-    public void Model_HasCustomerBarcodeAndMainImageIndexes()
+    public void Model_HasPerOrderCustomerBarcodeAndImageIndexes()
     {
         using var db = TestDbFactory.Create();
         var orderProduct = db.Model.FindEntityType(typeof(OrderProduct));
@@ -47,7 +47,7 @@ public class OrderProductSchemaTests
         Assert.Contains(orderProduct!.GetIndexes(), index =>
             index.IsUnique && index.Properties.Select(x => x.Name).SequenceEqual(new[]
             {
-                nameof(OrderProduct.CustomerId),
+                nameof(OrderProduct.SourceCustomerOrderId),
                 nameof(OrderProduct.CustomerBarcode)
             }));
 
