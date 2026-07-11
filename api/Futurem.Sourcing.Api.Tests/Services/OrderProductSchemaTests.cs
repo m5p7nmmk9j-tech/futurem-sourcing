@@ -62,6 +62,16 @@ public class OrderProductSchemaTests
     }
 
     [Fact]
+    public void AuditCorrelation_IsBoundedForMySqlIndexing()
+    {
+        using var db = TestDbFactory.Create();
+        var audit = db.Model.FindEntityType(typeof(AuditLog));
+        Assert.NotNull(audit);
+        Assert.Equal(120, audit!.FindProperty(nameof(AuditLog.CorrelationId))!.GetMaxLength());
+        Assert.Equal(80, audit.FindProperty(nameof(AuditLog.SourceDocumentType))!.GetMaxLength());
+    }
+
+    [Fact]
     public void PrintTemplate_SupportsCustomerVisualLabelAndMarkLayouts()
     {
         var names = typeof(PrintTemplate).GetProperties().Select(x => x.Name).ToHashSet();
