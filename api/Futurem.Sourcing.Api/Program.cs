@@ -12,7 +12,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "FUTUREM Enterprise API", Version = "v1.1.0" });
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "FUTUREM Enterprise API", Version = "v2.0.0" });
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -35,6 +35,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<DatabaseUpgradeService>();
+builder.Services.AddScoped<OrderProductSchemaUpgradeService>();
 builder.Services.AddScoped<ShipmentMeasurementService>();
 builder.Services.AddScoped<ShipmentExpenseService>();
 builder.Services.AddScoped<SupplierPrepaymentService>();
@@ -83,6 +84,8 @@ using (var scope = app.Services.CreateScope())
 {
     var upgrade = scope.ServiceProvider.GetRequiredService<DatabaseUpgradeService>();
     await upgrade.UpgradeAsync();
+    var orderProductUpgrade = scope.ServiceProvider.GetRequiredService<OrderProductSchemaUpgradeService>();
+    await orderProductUpgrade.UpgradeAsync();
 }
 
 app.UseMiddleware<BusinessRuleExceptionMiddleware>();
@@ -97,7 +100,7 @@ app.MapGet("/", () => Results.Ok(new
 {
     name = "FUTUREM Enterprise Sourcing API",
     status = "running",
-    version = "1.1.0"
+    version = "2.0.0"
 }));
 
 app.Run();
