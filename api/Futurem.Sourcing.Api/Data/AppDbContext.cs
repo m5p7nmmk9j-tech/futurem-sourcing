@@ -21,7 +21,10 @@ public class AppDbContext : DbContext
     public DbSet<QcOrder> QcOrders => Set<QcOrder>();
     public DbSet<ContainerLoad> ContainerLoads => Set<ContainerLoad>();
     public DbSet<Shipment> Shipments => Set<Shipment>();
+    public DbSet<ShipmentExpense> ShipmentExpenses => Set<ShipmentExpense>();
     public DbSet<FinanceRecord> FinanceRecords => Set<FinanceRecord>();
+    public DbSet<SupplierPrepayment> SupplierPrepayments => Set<SupplierPrepayment>();
+    public DbSet<SupplierPrepaymentUsage> SupplierPrepaymentUsages => Set<SupplierPrepaymentUsage>();
     public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<DocumentLine> DocumentLines => Set<DocumentLine>();
@@ -60,7 +63,10 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<QcOrder>().ToTable("qc_orders");
         modelBuilder.Entity<ContainerLoad>().ToTable("container_loads");
         modelBuilder.Entity<Shipment>().ToTable("shipments");
+        modelBuilder.Entity<ShipmentExpense>().ToTable("shipment_expenses");
         modelBuilder.Entity<FinanceRecord>().ToTable("finance_records");
+        modelBuilder.Entity<SupplierPrepayment>().ToTable("supplier_prepayments");
+        modelBuilder.Entity<SupplierPrepaymentUsage>().ToTable("supplier_prepayment_usages");
         modelBuilder.Entity<BankAccount>().ToTable("bank_accounts");
         modelBuilder.Entity<Payment>().ToTable("payments");
         modelBuilder.Entity<DocumentLine>().ToTable("document_lines");
@@ -82,12 +88,19 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<BackupJob>().ToTable("backup_jobs");
         modelBuilder.Entity<BackupHistory>().ToTable("backup_history");
         modelBuilder.Entity<RestoreHistory>().ToTable("restore_history");
+
         modelBuilder.Entity<Product>().HasIndex(x => x.Sku).IsUnique();
         modelBuilder.Entity<Product>().HasIndex(x => x.Barcode).IsUnique();
+        modelBuilder.Entity<ShipmentExpense>().HasIndex(x => new { x.ShipmentId, x.ExpenseCode }).IsUnique();
+        modelBuilder.Entity<ShipmentExpense>().HasIndex(x => new { x.ShipmentId, x.NormalizedExpenseName }).IsUnique();
+        modelBuilder.Entity<FinanceRecord>().HasIndex(x => x.ShipmentExpenseId).IsUnique();
+        modelBuilder.Entity<SupplierPrepayment>().HasIndex(x => new { x.SupplierId, x.Currency, x.Status });
+        modelBuilder.Entity<SupplierPrepaymentUsage>().HasIndex(x => new { x.SupplierPrepaymentId, x.FinanceRecordId });
         modelBuilder.Entity<UserAccount>().HasIndex(x => x.Username).IsUnique();
         modelBuilder.Entity<RefreshToken>().HasIndex(x => x.TokenHash);
         modelBuilder.Entity<UserSession>().HasIndex(x => x.SessionId);
         modelBuilder.Entity<SchemaVersion>().HasIndex(x => x.Version);
+
         ApplySnakeCaseColumnNames(modelBuilder);
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
