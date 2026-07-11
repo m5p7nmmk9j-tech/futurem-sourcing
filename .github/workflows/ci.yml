@@ -48,10 +48,41 @@ jobs:
         run: npm run build
 
   docker-build:
-    name: Docker Compose Build
+    name: Docker Compose Runtime Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Docker Build
-        run: docker compose build
+      - name: Build and start services
+        run: docker compose up -d --build
+      - name: Wait for API
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/ > /tmp/api-health.json; then
+              cat /tmp/api-health.json
+              exit 0
+            fi
+            sleep 3
+          done
+          docker compose logs api mysql
+          exit 1
+      - name: Check Web
+        run: curl -fsSI http://localhost:3000/
+      - name: Check upgraded database schema
+        run: |
+          docker exec futurem_mysql mysql -uroot -pfuturem123456 futurem_sourcing -e "
+            SHOW TABLES LIKE 'shipment_expenses';
+            SHOW TABLES LIKE 'supplier_prepayments';
+            SHOW TABLES LIKE 'supplier_prepayment_usages';
+            SHOW COLUMNS FROM shipments LIKE 'expense_total';
+            SHOW COLUMNS FROM finance_records LIKE 'shipment_expense_id';
+          "
+      - name: Show service status
+        if: always()
+        run: docker compose ps
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs --tail=300
+      - name: Stop services
+        if: always()
+        run: docker compose down -v
