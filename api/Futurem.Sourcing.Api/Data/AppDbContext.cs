@@ -12,6 +12,9 @@ public class AppDbContext : DbContext
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<Market> Markets => Set<Market>();
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<OrderProduct> OrderProducts => Set<OrderProduct>();
+    public DbSet<OrderProductImage> OrderProductImages => Set<OrderProductImage>();
+    public DbSet<CustomerImporterProfile> CustomerImporterProfiles => Set<CustomerImporterProfile>();
     public DbSet<ProductCategory> ProductCategories => Set<ProductCategory>();
     public DbSet<Rfq> Rfqs => Set<Rfq>();
     public DbSet<CustomerOrder> CustomerOrders => Set<CustomerOrder>();
@@ -54,6 +57,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Supplier>().ToTable("suppliers");
         modelBuilder.Entity<Market>().ToTable("markets");
         modelBuilder.Entity<Product>().ToTable("products");
+        modelBuilder.Entity<OrderProduct>().ToTable("order_products");
+        modelBuilder.Entity<OrderProductImage>().ToTable("order_product_images");
+        modelBuilder.Entity<CustomerImporterProfile>().ToTable("customer_importer_profiles");
         modelBuilder.Entity<ProductCategory>().ToTable("product_categories");
         modelBuilder.Entity<Rfq>().ToTable("rfqs");
         modelBuilder.Entity<CustomerOrder>().ToTable("customer_orders");
@@ -91,6 +97,11 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Product>().HasIndex(x => x.Sku).IsUnique();
         modelBuilder.Entity<Product>().HasIndex(x => x.Barcode).IsUnique();
+        modelBuilder.Entity<OrderProduct>().HasIndex(x => new { x.CustomerId, x.CustomerBarcode }).IsUnique();
+        modelBuilder.Entity<OrderProduct>().HasIndex(x => new { x.SourceCustomerOrderId, x.Status });
+        modelBuilder.Entity<OrderProductImage>().HasIndex(x => new { x.OrderProductId, x.ImageType });
+        modelBuilder.Entity<CustomerImporterProfile>().HasIndex(x => new { x.CustomerId, x.Status, x.IsDefault });
+        modelBuilder.Entity<PrintTemplate>().HasIndex(x => new { x.CustomerId, x.TemplateType, x.Status });
         modelBuilder.Entity<ShipmentExpense>().HasIndex(x => new { x.ShipmentId, x.ExpenseCode }).IsUnique();
         modelBuilder.Entity<ShipmentExpense>().HasIndex(x => new { x.ShipmentId, x.NormalizedExpenseName }).IsUnique();
         modelBuilder.Entity<FinanceRecord>().HasIndex(x => x.ShipmentExpenseId).IsUnique();
