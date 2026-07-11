@@ -21,7 +21,7 @@ public sealed class OrderProductIndexUpgradeService
         if (await IndexExistsAsync(OldIndex))
             await _db.Database.ExecuteSqlRawAsync($"DROP INDEX `{OldIndex}` ON `order_products`");
 
-        if (!await IndexExistsAsync(NewIndex))
+        if (!await PerOrderBarcodeUniqueIndexExistsAsync())
         {
             await _db.Database.ExecuteSqlRawAsync(
                 $"CREATE UNIQUE INDEX `{NewIndex}` ON `order_products` (`source_customer_order_id`,`customer_barcode`)");
@@ -41,6 +41,23 @@ public sealed class OrderProductIndexUpgradeService
         var count = await _db.Database.SqlQueryRaw<int>(
             "SELECT COUNT(*) AS `Value` FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'order_products' AND index_name = {0}",
             indexName).SingleAsync();
+        return count > 0;
+    }
+
+    private async Task<bool> PerOrderBarcodeUniqueIndexExistsAsync()
+    {
+        var count = await _db.Database.SqlQueryRaw<int>("""
+            SELECT COUNT(*) AS `Value`
+            FROM (
+                SELECT `index_name`
+                FROM information_schema.statistics
+                WHERE table_schema = DATABASE()
+                  AND table_name = 'order_products'
+                  AND non_unique = 0
+                GROUP BY `index_name`
+                HAVING GROUP_CONCAT(`column_name` ORDER BY `seq_in_index` SEPARATOR ',') = 'source_customer_order_id,customer_barcode'
+            ) AS matching_indexes
+            """).SingleAsync();
         return count > 0;
     }
 }
