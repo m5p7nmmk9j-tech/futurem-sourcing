@@ -6,7 +6,7 @@
     clearable
     placeholder="选择进口商资料"
     style="width: 100%"
-    @update:model-value="select"
+    @update:model-value="updateValue"
   >
     <el-option
       v-for="item in rows"
@@ -58,8 +58,12 @@ function select(value: number | null) {
   emit('selected', rows.value.find(item => item.id === value) || null)
 }
 
-watch(() => props.customerId, async () => {
-  if (props.modelValue) emit('update:modelValue', null)
+function updateValue(rawValue: unknown) {
+  select(Number(rawValue || 0) || null)
+}
+
+watch(() => props.customerId, async (current, previous) => {
+  if (previous !== undefined && current !== previous) emit('update:modelValue', null)
   await load()
 }, { immediate: true })
 </script>
