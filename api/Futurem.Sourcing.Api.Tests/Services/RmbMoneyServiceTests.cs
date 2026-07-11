@@ -12,7 +12,9 @@ public class RmbMoneyServiceTests
     public void NormalizeCurrency_AlwaysReturnsRmb(string? input)
         => Assert.Equal("RMB", RmbMoneyService.NormalizeCurrency(input));
 
-    [Fact]
-    public void Round_UsesTwoDecimalsAwayFromZero()
-        => Assert.Equal(12.35m, RmbMoneyService.Round(12.345m));
+    [Theory]
+    [InlineData(12.345, 12.35)]
+    [InlineData(-12.345, -12.35)]
+    public void Round_UsesTwoDecimalsAwayFromZero(decimal input, decimal expected)
+        => Assert.Equal(expected, RmbMoneyService.Round(input));
 }
