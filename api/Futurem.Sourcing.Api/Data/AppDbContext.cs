@@ -23,6 +23,10 @@ public class AppDbContext : DbContext
     public DbSet<SummaryOrderItem> SummaryOrderItems => Set<SummaryOrderItem>();
     public DbSet<DeliveryNotice> DeliveryNotices => Set<DeliveryNotice>();
     public DbSet<DeliveryNoticeLine> DeliveryNoticeLines => Set<DeliveryNoticeLine>();
+    public DbSet<Warehouse> Warehouses => Set<Warehouse>();
+    public DbSet<WarehouseLocation> WarehouseLocations => Set<WarehouseLocation>();
+    public DbSet<InventoryLot> InventoryLots => Set<InventoryLot>();
+    public DbSet<InventoryTransaction> InventoryTransactions => Set<InventoryTransaction>();
     public DbSet<ReceivingOrder> ReceivingOrders => Set<ReceivingOrder>();
     public DbSet<QcOrder> QcOrders => Set<QcOrder>();
     public DbSet<QcOrderLine> QcOrderLines => Set<QcOrderLine>();
@@ -73,6 +77,10 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<SummaryOrderItem>().ToTable("summary_order_items");
         modelBuilder.Entity<DeliveryNotice>().ToTable("delivery_notices");
         modelBuilder.Entity<DeliveryNoticeLine>().ToTable("delivery_notice_lines");
+        modelBuilder.Entity<Warehouse>().ToTable("warehouses");
+        modelBuilder.Entity<WarehouseLocation>().ToTable("warehouse_locations");
+        modelBuilder.Entity<InventoryLot>().ToTable("inventory_lots");
+        modelBuilder.Entity<InventoryTransaction>().ToTable("inventory_transactions");
         modelBuilder.Entity<ReceivingOrder>().ToTable("receiving_orders");
         modelBuilder.Entity<QcOrder>().ToTable("qc_orders");
         modelBuilder.Entity<QcOrderLine>().ToTable("qc_order_lines");
@@ -118,6 +126,12 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<DeliveryNotice>().HasIndex(x => new { x.SummaryOrderId, x.SupplierId, x.WarehouseId, x.PlannedDeliveryDate });
         modelBuilder.Entity<DeliveryNoticeLine>().HasIndex(x => new { x.DeliveryNoticeId, x.SummaryOrderItemId }).IsUnique();
         modelBuilder.Entity<DeliveryNoticeLine>().HasIndex(x => x.SummaryOrderItemId);
+        modelBuilder.Entity<Warehouse>().HasIndex(x => x.Code).IsUnique();
+        modelBuilder.Entity<WarehouseLocation>().HasIndex(x => new { x.WarehouseId, x.Code }).IsUnique();
+        modelBuilder.Entity<InventoryLot>().HasIndex(x => new { x.QcOrderLineId, x.WarehouseId, x.WarehouseLocationId }).IsUnique();
+        modelBuilder.Entity<InventoryLot>().HasIndex(x => new { x.CustomerId, x.WarehouseId, x.Status });
+        modelBuilder.Entity<InventoryLot>().HasIndex(x => new { x.OrderProductId, x.WarehouseId });
+        modelBuilder.Entity<InventoryTransaction>().HasIndex(x => new { x.InventoryLotId, x.CreatedAt });
         modelBuilder.Entity<ReceivingOrder>().HasIndex(x => x.DeliveryNoticeId);
         modelBuilder.Entity<DocumentLine>().HasIndex(x => x.DeliveryNoticeLineId);
         modelBuilder.Entity<QcOrder>().HasIndex(x => x.ReceivingOrderId).IsUnique();
