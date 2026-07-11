@@ -175,6 +175,13 @@ public class DatabaseUpgradeService
         await AddColumnIfMissingAsync("finance_records", "prepayment_applied_amount", "ALTER TABLE `finance_records` ADD COLUMN `prepayment_applied_amount` DECIMAL(18,2) NOT NULL DEFAULT 0");
         await AddColumnIfMissingAsync("finance_records", "overpayment_transferred_amount", "ALTER TABLE `finance_records` ADD COLUMN `overpayment_transferred_amount` DECIMAL(18,2) NOT NULL DEFAULT 0");
         await AddColumnIfMissingAsync("finance_records", "source_key", "ALTER TABLE `finance_records` ADD COLUMN `source_key` VARCHAR(200) NULL");
+
+        await AddUniqueIndexIfMissingAsync(
+            "finance_records",
+            "shipment_expense_id",
+            "ux_finance_shipment_expense",
+            "SELECT COUNT(*) AS `Value` FROM (SELECT `shipment_expense_id` FROM `finance_records` WHERE `shipment_expense_id` IS NOT NULL GROUP BY `shipment_expense_id` HAVING COUNT(*) > 1) duplicated_values",
+            "CREATE UNIQUE INDEX `ux_finance_shipment_expense` ON `finance_records` (`shipment_expense_id`)");
     }
 
     private async Task EnsureTwoDecimalPrecisionAsync()
@@ -193,14 +200,25 @@ public class DatabaseUpgradeService
             "ALTER TABLE `document_lines` MODIFY COLUMN `amount` DECIMAL(18,2) NOT NULL DEFAULT 0",
             "ALTER TABLE `document_lines` MODIFY COLUMN `carton_qty` DECIMAL(18,2) NOT NULL DEFAULT 0",
             "ALTER TABLE `document_lines` MODIFY COLUMN `cartons` DECIMAL(18,2) NOT NULL DEFAULT 0",
+            "ALTER TABLE `document_lines` MODIFY COLUMN `carton_length_cm` DECIMAL(18,2) NOT NULL DEFAULT 0",
+            "ALTER TABLE `document_lines` MODIFY COLUMN `carton_width_cm` DECIMAL(18,2) NOT NULL DEFAULT 0",
+            "ALTER TABLE `document_lines` MODIFY COLUMN `carton_height_cm` DECIMAL(18,2) NOT NULL DEFAULT 0",
             "ALTER TABLE `document_lines` MODIFY COLUMN `carton_cbm` DECIMAL(18,2) NOT NULL DEFAULT 0",
             "ALTER TABLE `document_lines` MODIFY COLUMN `total_cbm` DECIMAL(18,2) NOT NULL DEFAULT 0",
+            "ALTER TABLE `document_lines` MODIFY COLUMN `carton_gw_kg` DECIMAL(18,2) NOT NULL DEFAULT 0",
             "ALTER TABLE `document_lines` MODIFY COLUMN `total_gw_kg` DECIMAL(18,2) NOT NULL DEFAULT 0",
+            "ALTER TABLE `document_lines` MODIFY COLUMN `carton_nw_kg` DECIMAL(18,2) NOT NULL DEFAULT 0",
             "ALTER TABLE `document_lines` MODIFY COLUMN `total_nw_kg` DECIMAL(18,2) NOT NULL DEFAULT 0",
             "ALTER TABLE `finance_records` MODIFY COLUMN `amount` DECIMAL(18,2) NOT NULL DEFAULT 0",
             "ALTER TABLE `finance_records` MODIFY COLUMN `paid_amount` DECIMAL(18,2) NOT NULL DEFAULT 0",
+            "ALTER TABLE `finance_records` MODIFY COLUMN `prepayment_applied_amount` DECIMAL(18,2) NOT NULL DEFAULT 0",
+            "ALTER TABLE `finance_records` MODIFY COLUMN `overpayment_transferred_amount` DECIMAL(18,2) NOT NULL DEFAULT 0",
             "ALTER TABLE `payments` MODIFY COLUMN `amount` DECIMAL(18,2) NOT NULL DEFAULT 0",
-            "ALTER TABLE `payments` MODIFY COLUMN `fee_amount` DECIMAL(18,2) NOT NULL DEFAULT 0"
+            "ALTER TABLE `payments` MODIFY COLUMN `fee_amount` DECIMAL(18,2) NOT NULL DEFAULT 0",
+            "ALTER TABLE `shipment_expenses` MODIFY COLUMN `amount` DECIMAL(18,2) NOT NULL DEFAULT 0",
+            "ALTER TABLE `supplier_prepayments` MODIFY COLUMN `original_amount` DECIMAL(18,2) NOT NULL DEFAULT 0",
+            "ALTER TABLE `supplier_prepayments` MODIFY COLUMN `available_amount` DECIMAL(18,2) NOT NULL DEFAULT 0",
+            "ALTER TABLE `supplier_prepayment_usages` MODIFY COLUMN `amount` DECIMAL(18,2) NOT NULL DEFAULT 0"
         };
 
         foreach (var statement in sql)
