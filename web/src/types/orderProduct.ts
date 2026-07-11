@@ -56,13 +56,29 @@ export type OrderProductLine = {
   totalNwKg?: number
 }
 
-export type OrderProductDraft = Omit<Partial<OrderProduct>, 'supplierId'> & {
+export type OrderProductDraft = Omit<Partial<OrderProduct>,
+  'supplierId' |
+  'purchaseUnitPrice' |
+  'salesUnitPrice' |
+  'cartonQty' |
+  'cartonLengthCm' |
+  'cartonWidthCm' |
+  'cartonHeightCm' |
+  'cartonGwKg' |
+  'cartonNwKg'> & {
   customerOrderId: number
   supplierId: number | null
   nameCn: string
+  purchaseUnitPrice: number
+  salesUnitPrice: number
   quantity: number
   cartons: number
   cartonQty: number
+  cartonLengthCm: number
+  cartonWidthCm: number
+  cartonHeightCm: number
+  cartonGwKg: number
+  cartonNwKg: number
   images: OrderProductImage[]
 }
 
