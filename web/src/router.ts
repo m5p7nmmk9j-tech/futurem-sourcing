@@ -10,6 +10,7 @@ import Rfqs from './views/Rfqs.vue'
 import CustomerOrders from './views/CustomerOrders.vue'
 import PurchaseOrders from './views/PurchaseOrders.vue'
 import SummaryOrders from './views/SummaryOrders.vue'
+import DeliveryNotices from './views/DeliveryNotices.vue'
 import ReceivingOrders from './views/ReceivingOrders.vue'
 import QcOrders from './views/QcOrders.vue'
 import ContainerLoads from './views/ContainerLoads.vue'
@@ -45,6 +46,7 @@ const router = createRouter({
         { path: 'customer-orders', component: CustomerOrders },
         { path: 'purchase-orders', component: PurchaseOrders },
         { path: 'so-orders', component: SummaryOrders },
+        { path: 'delivery-notices', component: DeliveryNotices },
         { path: 'receiving-orders', component: ReceivingOrders },
         { path: 'qc-orders', component: QcOrders },
         { path: 'container-loads', component: ContainerLoads },
