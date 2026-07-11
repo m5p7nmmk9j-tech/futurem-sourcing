@@ -215,6 +215,7 @@ public sealed class SummaryReservationService
         if (items.Count == 0)
         {
             ApplyTotals(summary, 0, 0, 0, 0, 0, 0, 0);
+            _db.Entry(summary).State = EntityState.Modified;
             return;
         }
 
@@ -255,6 +256,7 @@ public sealed class SummaryReservationService
             netWeight,
             purchaseAmount,
             salesAmount);
+        _db.Entry(summary).State = EntityState.Modified;
     }
 
     private async Task<SummaryOrderItem> ReserveCoreAsync(
