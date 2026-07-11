@@ -56,7 +56,7 @@ export type OrderProductLine = {
   totalNwKg?: number
 }
 
-export type OrderProductDraft = Partial<OrderProduct> & {
+export type OrderProductDraft = Omit<Partial<OrderProduct>, 'supplierId'> & {
   customerOrderId: number
   supplierId: number | null
   nameCn: string
