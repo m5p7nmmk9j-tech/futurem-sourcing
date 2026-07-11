@@ -21,6 +21,8 @@ public class AppDbContext : DbContext
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
     public DbSet<SummaryOrder> SummaryOrders => Set<SummaryOrder>();
     public DbSet<SummaryOrderItem> SummaryOrderItems => Set<SummaryOrderItem>();
+    public DbSet<DeliveryNotice> DeliveryNotices => Set<DeliveryNotice>();
+    public DbSet<DeliveryNoticeLine> DeliveryNoticeLines => Set<DeliveryNoticeLine>();
     public DbSet<ReceivingOrder> ReceivingOrders => Set<ReceivingOrder>();
     public DbSet<QcOrder> QcOrders => Set<QcOrder>();
     public DbSet<ContainerLoad> ContainerLoads => Set<ContainerLoad>();
@@ -67,6 +69,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<PurchaseOrder>().ToTable("purchase_orders");
         modelBuilder.Entity<SummaryOrder>().ToTable("summary_orders");
         modelBuilder.Entity<SummaryOrderItem>().ToTable("summary_order_items");
+        modelBuilder.Entity<DeliveryNotice>().ToTable("delivery_notices");
+        modelBuilder.Entity<DeliveryNoticeLine>().ToTable("delivery_notice_lines");
         modelBuilder.Entity<ReceivingOrder>().ToTable("receiving_orders");
         modelBuilder.Entity<QcOrder>().ToTable("qc_orders");
         modelBuilder.Entity<ContainerLoad>().ToTable("container_loads");
@@ -106,6 +110,12 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<PrintTemplate>().HasIndex(x => new { x.CustomerId, x.TemplateType, x.Status });
         modelBuilder.Entity<SummaryOrderItem>().HasIndex(x => new { x.PurchaseOrderLineId, x.ReservationStatus });
         modelBuilder.Entity<SummaryOrderItem>().HasIndex(x => new { x.SummaryOrderId, x.ReservationStatus });
+        modelBuilder.Entity<DeliveryNotice>().HasIndex(x => x.SourceKey).IsUnique();
+        modelBuilder.Entity<DeliveryNotice>().HasIndex(x => new { x.SummaryOrderId, x.SupplierId, x.WarehouseId, x.PlannedDeliveryDate });
+        modelBuilder.Entity<DeliveryNoticeLine>().HasIndex(x => new { x.DeliveryNoticeId, x.SummaryOrderItemId }).IsUnique();
+        modelBuilder.Entity<DeliveryNoticeLine>().HasIndex(x => x.SummaryOrderItemId);
+        modelBuilder.Entity<ReceivingOrder>().HasIndex(x => x.DeliveryNoticeId);
+        modelBuilder.Entity<DocumentLine>().HasIndex(x => x.DeliveryNoticeLineId);
         modelBuilder.Entity<ShipmentExpense>().HasIndex(x => new { x.ShipmentId, x.ExpenseCode }).IsUnique();
         modelBuilder.Entity<ShipmentExpense>().HasIndex(x => new { x.ShipmentId, x.NormalizedExpenseName }).IsUnique();
         modelBuilder.Entity<FinanceRecord>().HasIndex(x => x.ShipmentExpenseId).IsUnique();
