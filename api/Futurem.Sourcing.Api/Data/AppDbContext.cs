@@ -97,7 +97,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Product>().HasIndex(x => x.Sku).IsUnique();
         modelBuilder.Entity<Product>().HasIndex(x => x.Barcode).IsUnique();
-        modelBuilder.Entity<OrderProduct>().HasIndex(x => new { x.CustomerId, x.CustomerBarcode }).IsUnique();
+        modelBuilder.Entity<OrderProduct>().HasIndex(x => new { x.SourceCustomerOrderId, x.CustomerBarcode }).IsUnique();
         modelBuilder.Entity<OrderProduct>().HasIndex(x => new { x.SourceCustomerOrderId, x.Status });
         modelBuilder.Entity<OrderProductImage>().HasIndex(x => new { x.OrderProductId, x.ImageType });
         modelBuilder.Entity<CustomerImporterProfile>().HasIndex(x => new { x.CustomerId, x.Status, x.IsDefault });
