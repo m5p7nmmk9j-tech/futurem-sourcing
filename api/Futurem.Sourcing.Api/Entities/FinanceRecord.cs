@@ -25,6 +25,8 @@ public class FinanceRecord : BaseEntity
     public decimal OverpaymentTransferredAmount { get; set; }
 
     public long? ShipmentExpenseId { get; set; }
+    public long? QcOrderId { get; set; }
+    public long? QcOrderLineId { get; set; }
     public string? SourceKey { get; set; }
     public DateTime? RecordDate { get; set; }
     public string Status { get; set; } = "pending";
