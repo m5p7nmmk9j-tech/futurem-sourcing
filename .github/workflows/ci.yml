@@ -57,7 +57,19 @@ jobs:
         run: npm test
       - name: Build Web
         working-directory: web
-        run: npm run build
+        shell: bash
+        run: |
+          set +e
+          npm run build 2>&1 | tee web-build.log
+          status=${PIPESTATUS[0]}
+          exit $status
+      - name: Upload Web build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build-log
+          path: web/web-build.log
+          retention-days: 1
 
   docker-build:
     name: Docker Compose Runtime Test
