@@ -48,8 +48,11 @@ public class ProductsController : ControllerBase
         input.Id = 0;
         input.Sku = string.IsNullOrWhiteSpace(input.Sku) ? await NewUniqueSkuAsync() : input.Sku.Trim();
         input.Barcode = string.IsNullOrWhiteSpace(input.Barcode) ? await NewUniqueBarcodeAsync() : input.Barcode.Trim();
+        if (input.Sku.Length > 80) return BadRequest("SKU length must be <= 80");
+        if (input.Barcode.Length > 80) return BadRequest("Barcode length must be <= 80");
         if (await _db.Products.IgnoreQueryFilters().AnyAsync(x => x.Sku == input.Sku)) return BadRequest("SKU already exists");
         if (await _db.Products.IgnoreQueryFilters().AnyAsync(x => x.Barcode == input.Barcode)) return BadRequest("Barcode already exists");
+        RoundProductValues(input);
         input.CreatedAt = DateTime.Now;
         _db.Products.Add(input);
         await _db.SaveChangesAsync();
@@ -62,6 +65,13 @@ public class ProductsController : ControllerBase
         var entity = await _db.Products.FindAsync(id);
         if (entity == null) return NotFound();
 
+        var barcode = input.Barcode?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(barcode)) return BadRequest("Barcode required");
+        if (barcode.Length > 80) return BadRequest("Barcode length must be <= 80");
+        if (await _db.Products.IgnoreQueryFilters().AnyAsync(x => x.Id != id && x.Barcode == barcode))
+            return BadRequest("Barcode already exists");
+
+        entity.Barcode = barcode;
         entity.NameCn = input.NameCn;
         entity.NameEn = input.NameEn;
         entity.NameEs = input.NameEs;
@@ -70,13 +80,13 @@ public class ProductsController : ControllerBase
         entity.Unit = input.Unit;
         entity.CustomerItemNo = input.CustomerItemNo;
         entity.ImageUrl = input.ImageUrl;
-        entity.PurchasePrice = input.PurchasePrice;
-        entity.CartonQty = input.CartonQty;
-        entity.CartonLengthCm = input.CartonLengthCm;
-        entity.CartonWidthCm = input.CartonWidthCm;
-        entity.CartonHeightCm = input.CartonHeightCm;
-        entity.CartonGwKg = input.CartonGwKg;
-        entity.CartonNwKg = input.CartonNwKg;
+        entity.PurchasePrice = FinanceBalanceService.Round2(input.PurchasePrice);
+        entity.CartonQty = FinanceBalanceService.Round2(input.CartonQty);
+        entity.CartonLengthCm = FinanceBalanceService.Round2(input.CartonLengthCm);
+        entity.CartonWidthCm = FinanceBalanceService.Round2(input.CartonWidthCm);
+        entity.CartonHeightCm = FinanceBalanceService.Round2(input.CartonHeightCm);
+        entity.CartonGwKg = FinanceBalanceService.Round2(input.CartonGwKg);
+        entity.CartonNwKg = FinanceBalanceService.Round2(input.CartonNwKg);
         entity.Remark = input.Remark;
         entity.UpdatedAt = DateTime.Now;
 
@@ -94,6 +104,17 @@ public class ProductsController : ControllerBase
         entity.UpdatedAt = DateTime.Now;
         await _db.SaveChangesAsync();
         return Ok(new { ok = true });
+    }
+
+    private static void RoundProductValues(Product product)
+    {
+        product.PurchasePrice = FinanceBalanceService.Round2(product.PurchasePrice);
+        product.CartonQty = FinanceBalanceService.Round2(product.CartonQty);
+        product.CartonLengthCm = FinanceBalanceService.Round2(product.CartonLengthCm);
+        product.CartonWidthCm = FinanceBalanceService.Round2(product.CartonWidthCm);
+        product.CartonHeightCm = FinanceBalanceService.Round2(product.CartonHeightCm);
+        product.CartonGwKg = FinanceBalanceService.Round2(product.CartonGwKg);
+        product.CartonNwKg = FinanceBalanceService.Round2(product.CartonNwKg);
     }
 
     private async Task<string> NewUniqueSkuAsync()
