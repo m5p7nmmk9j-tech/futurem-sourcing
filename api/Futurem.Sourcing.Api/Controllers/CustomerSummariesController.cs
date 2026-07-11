@@ -176,12 +176,13 @@ public class CustomerSummariesController : ControllerBase
         if (!draft.WarehouseId.HasValue || draft.WarehouseId.Value <= 0 || !draft.PlannedDeliveryDate.HasValue)
             throw new BusinessRuleException("SUMMARY_DELIVERY_PLAN_REQUIRED", "确认汇总单前必须选择计划送货日期和收货仓库");
 
-        var summary = await _reservations.ConfirmAsync(id, CurrentUserId());
+        var userId = CurrentUserId();
+        var summary = await _reservations.ConfirmAsync(id, userId);
         var notices = await _deliveryNotices.GenerateForConfirmedSummaryAsync(
             summary.Id,
             summary.PlannedDeliveryDate.Value,
             summary.WarehouseId.Value,
-            CurrentUserId());
+            userId);
         return Ok(new { summary, deliveryNotices = notices });
     }
 
@@ -237,7 +238,9 @@ public class CustomerSummariesController : ControllerBase
 
     private long? CurrentUserId()
     {
-        var raw = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        var principal = ControllerContext?.HttpContext?.User;
+        if (principal is null) return null;
+        var raw = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? principal.FindFirstValue("sub");
         return long.TryParse(raw, out var id) ? id : null;
     }
 }
