@@ -41,15 +41,18 @@ public class CustomerImporterProfilesController : ControllerBase
     {
         Validate(input);
         input.Id = 0;
-        input.Status = string.IsNullOrWhiteSpace(input.Status) ? "active" : input.Status;
-        input.DefaultOriginText = string.IsNullOrWhiteSpace(input.DefaultOriginText)
-            ? "Made in China"
-            : input.DefaultOriginText.Trim();
+        input.Status = NormalizeStatus(input.Status);
+        input.DefaultOriginText = NormalizeOrigin(input.DefaultOriginText);
         input.CreatedAt = DateTime.Now;
 
-        var hasAny = await _db.CustomerImporterProfiles.AnyAsync(x => x.CustomerId == input.CustomerId);
-        if (!hasAny) input.IsDefault = true;
-        if (input.IsDefault) await ClearOtherDefaultsAsync(input.CustomerId, null);
+        var hasAnyActive = await _db.CustomerImporterProfiles
+            .AnyAsync(x => x.CustomerId == input.CustomerId && x.Status == "active");
+        if (!hasAnyActive) input.IsDefault = true;
+        if (input.IsDefault)
+        {
+            input.Status = "active";
+            await ClearOtherDefaultsAsync(input.CustomerId, null);
+        }
 
         _db.CustomerImporterProfiles.Add(input);
         await _db.SaveChangesAsync();
@@ -65,7 +68,31 @@ public class CustomerImporterProfilesController : ControllerBase
         if (entity.CustomerId != input.CustomerId)
             throw new BusinessRuleException("IMPORTER_CUSTOMER_IMMUTABLE", "进口商资料所属客户不能修改");
 
-        if (input.IsDefault) await ClearOtherDefaultsAsync(entity.CustomerId, entity.Id);
+        var requestedStatus = NormalizeStatus(input.Status);
+        var requestedDefault = input.IsDefault;
+        if (requestedDefault)
+        {
+            requestedStatus = "active";
+            await ClearOtherDefaultsAsync(entity.CustomerId, entity.Id);
+        }
+        else if (entity.IsDefault)
+        {
+            var replacement = await _db.CustomerImporterProfiles
+                .Where(x => x.CustomerId == entity.CustomerId && x.Id != entity.Id && x.Status == "active")
+                .OrderBy(x => x.Id)
+                .FirstOrDefaultAsync();
+            if (replacement is null)
+            {
+                requestedDefault = true;
+                requestedStatus = "active";
+            }
+            else
+            {
+                replacement.IsDefault = true;
+                replacement.UpdatedAt = DateTime.Now;
+            }
+        }
+
         entity.Name = input.Name.Trim();
         entity.CompanyName = input.CompanyName.Trim();
         entity.TaxIdOrRfc = input.TaxIdOrRfc?.Trim();
@@ -74,13 +101,11 @@ public class CustomerImporterProfilesController : ControllerBase
         entity.Phone = input.Phone?.Trim();
         entity.Email = input.Email?.Trim();
         entity.LogoUrl = input.LogoUrl?.Trim();
-        entity.DefaultOriginText = string.IsNullOrWhiteSpace(input.DefaultOriginText)
-            ? "Made in China"
-            : input.DefaultOriginText.Trim();
+        entity.DefaultOriginText = NormalizeOrigin(input.DefaultOriginText);
         entity.DefaultLabelTemplateId = input.DefaultLabelTemplateId;
         entity.DefaultMarkTemplateId = input.DefaultMarkTemplateId;
-        entity.IsDefault = input.IsDefault;
-        entity.Status = string.IsNullOrWhiteSpace(input.Status) ? "active" : input.Status;
+        entity.IsDefault = requestedDefault;
+        entity.Status = requestedStatus;
         entity.Remark = input.Remark;
         entity.UpdatedAt = DateTime.Now;
         await _db.SaveChangesAsync();
@@ -92,24 +117,31 @@ public class CustomerImporterProfilesController : ControllerBase
     {
         var entity = await _db.CustomerImporterProfiles.FindAsync(id);
         if (entity is null) return NotFound();
-        var referenced = await _db.CustomerOrders.AnyAsync(x => x.ImporterProfileId == id && x.Status != "draft");
-        if (referenced)
-            throw new BusinessRuleException("IMPORTER_IN_USE", "该进口商资料已被确认订单使用，不能删除");
 
+        var referencedByCustomerOrder = await _db.CustomerOrders.AnyAsync(x => x.ImporterProfileId == id);
+        var referencedByPurchaseOrder = await _db.PurchaseOrders.AnyAsync(x => x.ImporterProfileId == id);
+        var referencedByOrderProduct = await _db.OrderProducts.AnyAsync(x => x.ImporterProfileId == id);
+        if (referencedByCustomerOrder || referencedByPurchaseOrder || referencedByOrderProduct)
+            throw new BusinessRuleException("IMPORTER_IN_USE", "该进口商资料已被业务单据使用，不能删除");
+
+        var wasDefault = entity.IsDefault;
         entity.IsDeleted = true;
         entity.IsDefault = false;
         entity.UpdatedAt = DateTime.Now;
         await _db.SaveChangesAsync();
 
-        var next = await _db.CustomerImporterProfiles
-            .Where(x => x.CustomerId == entity.CustomerId)
-            .OrderBy(x => x.Id)
-            .FirstOrDefaultAsync();
-        if (next is not null)
+        if (wasDefault)
         {
-            next.IsDefault = true;
-            next.UpdatedAt = DateTime.Now;
-            await _db.SaveChangesAsync();
+            var next = await _db.CustomerImporterProfiles
+                .Where(x => x.CustomerId == entity.CustomerId && x.Status == "active")
+                .OrderBy(x => x.Id)
+                .FirstOrDefaultAsync();
+            if (next is not null)
+            {
+                next.IsDefault = true;
+                next.UpdatedAt = DateTime.Now;
+                await _db.SaveChangesAsync();
+            }
         }
         return Ok(new { ok = true });
     }
@@ -138,4 +170,12 @@ public class CustomerImporterProfilesController : ControllerBase
             item.UpdatedAt = DateTime.Now;
         }
     }
+
+    private static string NormalizeStatus(string? status)
+        => string.Equals(status?.Trim(), "inactive", StringComparison.OrdinalIgnoreCase)
+            ? "inactive"
+            : "active";
+
+    private static string NormalizeOrigin(string? origin)
+        => string.IsNullOrWhiteSpace(origin) ? "Made in China" : origin.Trim();
 }
