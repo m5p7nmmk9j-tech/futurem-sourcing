@@ -146,9 +146,9 @@ public sealed class OrderProductSchemaUpgradeService
 
             await _db.Database.ExecuteSqlRawAsync(
                 $"UPDATE `{table}` SET `currency` = 'RMB', " +
-                "`importer_snapshot_json` = COALESCE(`importer_snapshot_json`, '{}'), " +
-                "`label_template_snapshot_json` = COALESCE(`label_template_snapshot_json`, '{}'), " +
-                "`mark_template_snapshot_json` = COALESCE(`mark_template_snapshot_json`, '{}')");
+                "`importer_snapshot_json` = COALESCE(`importer_snapshot_json`, '{{}}'), " +
+                "`label_template_snapshot_json` = COALESCE(`label_template_snapshot_json`, '{{}}'), " +
+                "`mark_template_snapshot_json` = COALESCE(`mark_template_snapshot_json`, '{{}}')");
         }
     }
 
@@ -175,7 +175,7 @@ public sealed class OrderProductSchemaUpgradeService
         await AddColumnIfMissingAsync("print_templates", "paper_height_mm", "ALTER TABLE `print_templates` ADD COLUMN `paper_height_mm` DECIMAL(18,2) NULL");
         await AddColumnIfMissingAsync("print_templates", "orientation", "ALTER TABLE `print_templates` ADD COLUMN `orientation` VARCHAR(40) NOT NULL DEFAULT 'portrait'");
         await AddColumnIfMissingAsync("print_templates", "layout_json", "ALTER TABLE `print_templates` ADD COLUMN `layout_json` MEDIUMTEXT NULL");
-        await _db.Database.ExecuteSqlRawAsync("UPDATE `print_templates` SET `layout_json` = COALESCE(`layout_json`, '{}')");
+        await _db.Database.ExecuteSqlRawAsync("UPDATE `print_templates` SET `layout_json` = COALESCE(`layout_json`, '{{}}')");
     }
 
     private async Task ExtendAuditLogsAsync()
