@@ -79,6 +79,11 @@ public sealed class SummaryReservationService
             item.ReleasedAt = DateTime.Now;
             item.ReleaseReason = reason.Trim();
             item.UpdatedAt = DateTime.Now;
+
+            // Persist the released status before recalculating. EF Core's InMemory
+            // provider evaluates the aggregate query against its persisted store,
+            // while relational providers keep both writes inside this transaction.
+            await _db.SaveChangesAsync();
             await RecalculateSummaryAsync(summary.Id);
             await _db.SaveChangesAsync();
             await _audit.WriteAsync(
