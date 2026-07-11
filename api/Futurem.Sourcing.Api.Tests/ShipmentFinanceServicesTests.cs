@@ -94,4 +94,45 @@ public class ShipmentFinanceServicesTests
 
         Assert.Equal(2, db.FinanceRecords.Count(x => x.RecordType == "payable" && x.Amount > 0m));
     }
+
+    [Fact]
+    public async Task LoweringExpenseBelowPaidAmount_CreatesSupplierPrepayment()
+    {
+        await using var db = TestDbFactory.Create();
+        var shipment = new Shipment { No = "SHP-4", Currency = "USD", Status = "confirmed" };
+        db.Shipments.Add(shipment);
+        await db.SaveChangesAsync();
+        var expense = new ShipmentExpense
+        {
+            ShipmentId = shipment.Id,
+            ExpenseCode = "OCEAN_FREIGHT",
+            ExpenseName = "海运费",
+            NormalizedExpenseName = "海运费",
+            SupplierId = 1,
+            Amount = 1000m,
+            Currency = "USD"
+        };
+        db.ShipmentExpenses.Add(expense);
+        await db.SaveChangesAsync();
+
+        var expenseService = new ShipmentExpenseService(db);
+        var prepaymentService = new SupplierPrepaymentService(db);
+        var syncService = new ShipmentFinanceSyncService(db, expenseService, prepaymentService);
+        await syncService.SyncAsync(shipment.Id);
+
+        var payable = db.FinanceRecords.Single(x => x.ShipmentExpenseId == expense.Id);
+        payable.PaidAmount = 800m;
+        FinanceBalanceService.RefreshStatus(payable);
+        expense.Amount = 700m;
+        await db.SaveChangesAsync();
+
+        await syncService.SyncAsync(shipment.Id);
+
+        Assert.Equal(700m, payable.Amount);
+        Assert.Equal(100m, payable.OverpaymentTransferredAmount);
+        var prepayment = db.SupplierPrepayments.Single(x => x.SourceFinanceRecordId == payable.Id);
+        Assert.Equal(100m, prepayment.OriginalAmount);
+        Assert.Equal(100m, prepayment.AvailableAmount);
+        Assert.Equal(0m, FinanceBalanceService.Outstanding(payable));
+    }
 }
