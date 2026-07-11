@@ -126,8 +126,9 @@ public class DocumentLinesController : ControllerBase
             line.Cartons = FinanceBalanceService.Round2(Math.Ceiling(line.Quantity / line.CartonQty));
 
         line.Amount = FinanceBalanceService.Round2(line.Quantity * line.UnitPrice);
-        line.CartonCbm = FinanceBalanceService.Round2(line.CartonLengthCm * line.CartonWidthCm * line.CartonHeightCm / 1000000m);
-        line.TotalCbm = FinanceBalanceService.Round2(line.CartonCbm * line.Cartons);
+        var rawCartonCbm = line.CartonLengthCm * line.CartonWidthCm * line.CartonHeightCm / 1000000m;
+        line.CartonCbm = FinanceBalanceService.Round2(rawCartonCbm);
+        line.TotalCbm = FinanceBalanceService.Round2(rawCartonCbm * line.Cartons);
         line.TotalGwKg = FinanceBalanceService.Round2(line.CartonGwKg * line.Cartons);
         line.TotalNwKg = FinanceBalanceService.Round2(line.CartonNwKg * line.Cartons);
     }
