@@ -35,6 +35,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<DatabaseUpgradeService>();
+builder.Services.AddScoped<AuditSchemaUpgradeService>();
 builder.Services.AddScoped<OrderProductSchemaUpgradeService>();
 builder.Services.AddScoped<ShipmentMeasurementService>();
 builder.Services.AddScoped<ShipmentExpenseService>();
@@ -84,6 +85,8 @@ using (var scope = app.Services.CreateScope())
 {
     var upgrade = scope.ServiceProvider.GetRequiredService<DatabaseUpgradeService>();
     await upgrade.UpgradeAsync();
+    var auditUpgrade = scope.ServiceProvider.GetRequiredService<AuditSchemaUpgradeService>();
+    await auditUpgrade.UpgradeAsync();
     var orderProductUpgrade = scope.ServiceProvider.GetRequiredService<OrderProductSchemaUpgradeService>();
     await orderProductUpgrade.UpgradeAsync();
 }
