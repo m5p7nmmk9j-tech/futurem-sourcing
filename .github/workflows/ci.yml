@@ -111,6 +111,14 @@ jobs:
             SHOW TABLES LIKE 'shipment_expenses';
             SHOW TABLES LIKE 'supplier_prepayments';
             SHOW TABLES LIKE 'supplier_prepayment_usages';
+            SHOW TABLES LIKE 'warehouses';
+            SHOW TABLES LIKE 'warehouse_locations';
+            SHOW TABLES LIKE 'inventory_lots';
+            SHOW TABLES LIKE 'inventory_transactions';
+            SHOW TABLES LIKE 'inventory_reservations';
+            SHOW COLUMNS FROM container_loads LIKE 'customer_id';
+            SHOW COLUMNS FROM container_loads LIKE 'warehouse_id';
+            SHOW COLUMNS FROM container_loads LIKE 'inventory_lock_expires_at';
             SHOW COLUMNS FROM shipments LIKE 'expense_total';
             SHOW COLUMNS FROM finance_records LIKE 'shipment_expense_id';
           "
