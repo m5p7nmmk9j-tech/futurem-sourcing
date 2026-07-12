@@ -44,6 +44,7 @@ builder.Services.AddScoped<QcConfirmationSchemaUpgradeService>();
 builder.Services.AddScoped<InventorySchemaUpgradeService>();
 builder.Services.AddScoped<ContainerReservationSchemaUpgradeService>();
 builder.Services.AddScoped<ContainerConfirmationSchemaUpgradeService>();
+builder.Services.AddScoped<LogisticsProviderSchemaUpgradeService>();
 builder.Services.AddScoped<DeliveryNoticeService>();
 builder.Services.AddScoped<QcConfirmationService>();
 builder.Services.AddScoped<SummaryReservationService>();
@@ -99,26 +100,17 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var upgrade = scope.ServiceProvider.GetRequiredService<DatabaseUpgradeService>();
-    await upgrade.UpgradeAsync();
-    var auditUpgrade = scope.ServiceProvider.GetRequiredService<AuditSchemaUpgradeService>();
-    await auditUpgrade.UpgradeAsync();
-    var orderProductUpgrade = scope.ServiceProvider.GetRequiredService<OrderProductSchemaUpgradeService>();
-    await orderProductUpgrade.UpgradeAsync();
-    var orderProductIndexUpgrade = scope.ServiceProvider.GetRequiredService<OrderProductIndexUpgradeService>();
-    await orderProductIndexUpgrade.UpgradeAsync();
-    var summaryReservationUpgrade = scope.ServiceProvider.GetRequiredService<SummaryReservationSchemaUpgradeService>();
-    await summaryReservationUpgrade.UpgradeAsync();
-    var deliveryNoticeUpgrade = scope.ServiceProvider.GetRequiredService<DeliveryNoticeSchemaUpgradeService>();
-    await deliveryNoticeUpgrade.UpgradeAsync();
-    var qcConfirmationUpgrade = scope.ServiceProvider.GetRequiredService<QcConfirmationSchemaUpgradeService>();
-    await qcConfirmationUpgrade.UpgradeAsync();
-    var inventoryUpgrade = scope.ServiceProvider.GetRequiredService<InventorySchemaUpgradeService>();
-    await inventoryUpgrade.UpgradeAsync();
-    var containerReservationUpgrade = scope.ServiceProvider.GetRequiredService<ContainerReservationSchemaUpgradeService>();
-    await containerReservationUpgrade.UpgradeAsync();
-    var containerConfirmationUpgrade = scope.ServiceProvider.GetRequiredService<ContainerConfirmationSchemaUpgradeService>();
-    await containerConfirmationUpgrade.UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<DatabaseUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<AuditSchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<OrderProductSchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<OrderProductIndexUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<SummaryReservationSchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<DeliveryNoticeSchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<QcConfirmationSchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<InventorySchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<ContainerReservationSchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<ContainerConfirmationSchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<LogisticsProviderSchemaUpgradeService>().UpgradeAsync();
 }
 
 app.UseMiddleware<BusinessRuleExceptionMiddleware>();
