@@ -72,6 +72,9 @@ public sealed class FinanceDocumentService
                 TargetType = targetType,
                 TargetId = targetId,
                 CustomerId = customerId,
+                SupplierId = null,
+                LogisticsProviderId = null,
+                CounterpartyType = "customer",
                 Currency = RmbMoneyService.Currency,
                 SourceKey = sourceKey,
                 RecordDate = DateTime.Now,
@@ -80,6 +83,13 @@ public sealed class FinanceDocumentService
             };
             _db.FinanceRecords.Add(record);
             await _db.SaveChangesAsync(cancellationToken);
+        }
+        else
+        {
+            if (record.RecordType != "receivable" || record.CustomerId != customerId)
+                throw new BusinessRuleException("FINANCE_SOURCE_CONFLICT", "财务来源键已被其他往来单占用");
+            record.CounterpartyType = "customer";
+            record.Currency = RmbMoneyService.Currency;
         }
 
         await EnsureLinesAsync(record, lines, cancellationToken);
@@ -105,6 +115,8 @@ public sealed class FinanceDocumentService
                 TargetType = targetType,
                 TargetId = targetId,
                 SupplierId = supplierId,
+                LogisticsProviderId = null,
+                CounterpartyType = "product_supplier",
                 Currency = RmbMoneyService.Currency,
                 SourceKey = sourceKey,
                 RecordDate = DateTime.Now,
@@ -113,6 +125,56 @@ public sealed class FinanceDocumentService
             };
             _db.FinanceRecords.Add(record);
             await _db.SaveChangesAsync(cancellationToken);
+        }
+        else
+        {
+            if (record.RecordType != "payable" || record.SupplierId != supplierId)
+                throw new BusinessRuleException("FINANCE_SOURCE_CONFLICT", "财务来源键已被其他往来单占用");
+            record.CounterpartyType = "product_supplier";
+            record.Currency = RmbMoneyService.Currency;
+        }
+
+        await EnsureLinesAsync(record, lines, cancellationToken);
+        await RecalculateAsync(record.Id, cancellationToken);
+        return record;
+    }
+
+    public async Task<FinanceRecord> EnsureLogisticsProviderPayableAsync(
+        string sourceKey,
+        string targetType,
+        long targetId,
+        long logisticsProviderId,
+        IReadOnlyCollection<FinanceLineInput> lines,
+        CancellationToken cancellationToken = default)
+    {
+        var record = await _db.FinanceRecords.FirstOrDefaultAsync(x => x.SourceKey == sourceKey, cancellationToken);
+        if (record is null)
+        {
+            record = new FinanceRecord
+            {
+                No = NumberService.NewNo("AP"),
+                RecordType = "payable",
+                TargetType = targetType,
+                TargetId = targetId,
+                SupplierId = null,
+                LogisticsProviderId = logisticsProviderId,
+                CounterpartyType = "logistics_provider",
+                Currency = RmbMoneyService.Currency,
+                SourceKey = sourceKey,
+                RecordDate = DateTime.Now,
+                Status = "pending",
+                CreatedAt = DateTime.Now
+            };
+            _db.FinanceRecords.Add(record);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        else
+        {
+            if (record.RecordType != "payable" || record.LogisticsProviderId != logisticsProviderId)
+                throw new BusinessRuleException("FINANCE_SOURCE_CONFLICT", "财务来源键已被其他往来单占用");
+            record.SupplierId = null;
+            record.CounterpartyType = "logistics_provider";
+            record.Currency = RmbMoneyService.Currency;
         }
 
         await EnsureLinesAsync(record, lines, cancellationToken);
@@ -148,7 +210,12 @@ public sealed class FinanceDocumentService
             var existing = await _db.FinanceRecordLines.FirstOrDefaultAsync(
                 x => x.SourceKey == input.SourceKey,
                 cancellationToken);
-            if (existing is not null) continue;
+            if (existing is not null)
+            {
+                if (existing.FinanceRecordId != record.Id)
+                    throw new BusinessRuleException("FINANCE_LINE_SOURCE_CONFLICT", "财务明细来源键已被其他财务单占用");
+                continue;
+            }
 
             _db.FinanceRecordLines.Add(new FinanceRecordLine
             {
