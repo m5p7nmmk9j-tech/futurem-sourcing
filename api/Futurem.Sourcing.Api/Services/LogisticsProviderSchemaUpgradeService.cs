@@ -53,6 +53,7 @@ public sealed class LogisticsProviderSchemaUpgradeService
 
         await AddColumnIfMissingAsync("shipments", "customer_charge_total", "ALTER TABLE `shipments` ADD COLUMN `customer_charge_total` DECIMAL(18,2) NOT NULL DEFAULT 0");
         await AddColumnIfMissingAsync("shipments", "logistics_profit_total", "ALTER TABLE `shipments` ADD COLUMN `logistics_profit_total` DECIMAL(18,2) NOT NULL DEFAULT 0");
+        await AddColumnIfMissingAsync("shipments", "actual_departure_at", "ALTER TABLE `shipments` ADD COLUMN `actual_departure_at` DATETIME NULL");
         await AddColumnIfMissingAsync("finance_records", "logistics_provider_id", "ALTER TABLE `finance_records` ADD COLUMN `logistics_provider_id` BIGINT NULL");
         await AddColumnIfMissingAsync("finance_records", "counterparty_type", "ALTER TABLE `finance_records` ADD COLUMN `counterparty_type` VARCHAR(40) NOT NULL DEFAULT ''");
 
@@ -69,7 +70,7 @@ public sealed class LogisticsProviderSchemaUpgradeService
             """);
         await _db.Database.ExecuteSqlRawAsync("UPDATE `shipments` SET `currency` = 'RMB'");
 
-        _logger.LogInformation("Independent logistics provider and dual shipment expense schema is ready");
+        _logger.LogInformation("Independent logistics provider, dual shipment expense and departure schema is ready");
     }
 
     private async Task AddColumnIfMissingAsync(string table, string column, string alterSql)
