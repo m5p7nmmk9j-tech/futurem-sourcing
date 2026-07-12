@@ -65,7 +65,7 @@ public sealed class ContainerReservationSchemaUpgradeService
         await AddIndexIfMissingAsync(
             "container_loads",
             "ix_container_customer_warehouse_status",
-            "CREATE INDEX `ix_container_customer_warehouse_status` ON `container_loads` (`customer_id`,`warehouse_id`,`status`)");
+            "CREATE INDEX `ix_container_customer_warehouse_status` ON `container_loads` (`customer_id`,`warehouse_id`,`status`(32))");
 
         _logger.LogInformation("Container inventory reservation schema is ready");
     }
