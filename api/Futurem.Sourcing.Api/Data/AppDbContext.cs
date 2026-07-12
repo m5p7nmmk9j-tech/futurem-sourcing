@@ -41,6 +41,9 @@ public class AppDbContext : DbContext
     public DbSet<FinancialAdjustment> FinancialAdjustments => Set<FinancialAdjustment>();
     public DbSet<SupplierPrepayment> SupplierPrepayments => Set<SupplierPrepayment>();
     public DbSet<SupplierPrepaymentUsage> SupplierPrepaymentUsages => Set<SupplierPrepaymentUsage>();
+    public DbSet<CustomerAdvance> CustomerAdvances => Set<CustomerAdvance>();
+    public DbSet<CustomerAdvanceUsage> CustomerAdvanceUsages => Set<CustomerAdvanceUsage>();
+    public DbSet<PaymentAllocation> PaymentAllocations => Set<PaymentAllocation>();
     public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<DocumentLine> DocumentLines => Set<DocumentLine>();
@@ -99,6 +102,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<FinancialAdjustment>().ToTable("financial_adjustments");
         modelBuilder.Entity<SupplierPrepayment>().ToTable("supplier_prepayments");
         modelBuilder.Entity<SupplierPrepaymentUsage>().ToTable("supplier_prepayment_usages");
+        modelBuilder.Entity<CustomerAdvance>().ToTable("customer_advances");
+        modelBuilder.Entity<CustomerAdvanceUsage>().ToTable("customer_advance_usages");
+        modelBuilder.Entity<PaymentAllocation>().ToTable("payment_allocations");
         modelBuilder.Entity<BankAccount>().ToTable("bank_accounts");
         modelBuilder.Entity<Payment>().ToTable("payments");
         modelBuilder.Entity<DocumentLine>().ToTable("document_lines");
@@ -163,8 +169,14 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<ShipmentExpense>().HasIndex(x => new { x.ShipmentId, x.NormalizedExpenseName }).IsUnique();
         modelBuilder.Entity<ShipmentExpense>().HasIndex(x => new { x.LogisticsProviderId, x.ServiceType });
         modelBuilder.Entity<FinanceRecord>().HasIndex(x => x.ShipmentExpenseId).IsUnique();
-        modelBuilder.Entity<SupplierPrepayment>().HasIndex(x => new { x.SupplierId, x.Currency, x.Status });
+        modelBuilder.Entity<SupplierPrepayment>().HasIndex(x => new { x.CounterpartyType, x.SupplierId, x.LogisticsProviderId, x.Status });
         modelBuilder.Entity<SupplierPrepaymentUsage>().HasIndex(x => new { x.SupplierPrepaymentId, x.FinanceRecordId });
+        modelBuilder.Entity<CustomerAdvance>().HasIndex(x => new { x.CustomerId, x.Status, x.CreatedAt });
+        modelBuilder.Entity<CustomerAdvance>().HasIndex(x => x.SourcePaymentId).IsUnique();
+        modelBuilder.Entity<CustomerAdvanceUsage>().HasIndex(x => new { x.CustomerAdvanceId, x.FinanceRecordId });
+        modelBuilder.Entity<PaymentAllocation>().HasIndex(x => new { x.PaymentId, x.AllocationOrder });
+        modelBuilder.Entity<PaymentAllocation>().HasIndex(x => new { x.FinanceRecordId, x.FinanceRecordLineId });
+        modelBuilder.Entity<Payment>().HasIndex(x => x.ReversedPaymentId);
         modelBuilder.Entity<UserAccount>().HasIndex(x => x.Username).IsUnique();
         modelBuilder.Entity<RefreshToken>().HasIndex(x => x.TokenHash);
         modelBuilder.Entity<UserSession>().HasIndex(x => x.SessionId);
