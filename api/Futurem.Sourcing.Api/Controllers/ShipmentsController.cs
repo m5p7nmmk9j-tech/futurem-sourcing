@@ -51,11 +51,20 @@ public class ShipmentsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Shipment>> Create(Shipment input)
     {
+        if (input.ContainerLoadId.HasValue)
+        {
+            var existing = await _db.Shipments.FirstOrDefaultAsync(x => x.ContainerLoadId == input.ContainerLoadId.Value);
+            if (existing is not null) return existing;
+            throw new BusinessRuleException(
+                "SHIPMENT_MUST_BE_GENERATED_FROM_CONFIRMED_CONTAINER",
+                "关联装柜单的出运单必须由装柜确认自动生成");
+        }
+
         input.Id = 0;
         input.No = string.IsNullOrWhiteSpace(input.No) ? NumberService.NewNo("SHP") : input.No.Trim();
         input.Status = "draft";
         input.ShipmentMode = string.IsNullOrWhiteSpace(input.ShipmentMode) ? "SEA" : input.ShipmentMode;
-        input.Currency = string.IsNullOrWhiteSpace(input.Currency) ? "RMB" : input.Currency.Trim().ToUpperInvariant();
+        input.Currency = RmbMoneyService.Currency;
         input.CreatedAt = DateTime.Now;
         _db.Shipments.Add(input);
         await _db.SaveChangesAsync();
@@ -71,19 +80,54 @@ public class ShipmentsController : ControllerBase
         var cl = await _db.ContainerLoads.FindAsync(request.ContainerLoadId);
         if (cl == null) return NotFound();
 
+        var existing = await _db.Shipments.FirstOrDefaultAsync(x => x.ContainerLoadId == cl.Id);
+        if (existing is not null)
+        {
+            if (existing.Status == "draft")
+            {
+                existing.ShipmentMode = string.IsNullOrWhiteSpace(request.ShipmentMode) ? existing.ShipmentMode : request.ShipmentMode!;
+                existing.Carrier = request.Carrier ?? existing.Carrier;
+                existing.DeparturePort = request.DeparturePort ?? existing.DeparturePort;
+                existing.DestinationPort = request.DestinationPort ?? existing.DestinationPort;
+                existing.Etd = request.Etd ?? existing.Etd;
+                existing.Eta = request.Eta ?? existing.Eta;
+                existing.Currency = RmbMoneyService.Currency;
+                existing.UpdatedAt = DateTime.Now;
+                await _db.SaveChangesAsync();
+            }
+            await _expenseService.EnsureDefaultsAsync(existing.Id);
+            return existing;
+        }
+
+        if (cl.Status is not ("confirmed" or "shipment_created" or "completed"))
+        {
+            throw new BusinessRuleException(
+                "CONTAINER_NOT_CONFIRMED",
+                "装柜确认后系统才会生成出运单草稿");
+        }
+
         var shipment = new Shipment
         {
             No = NumberService.NewNo("SHP"),
             ContainerLoadId = cl.Id,
             SummaryOrderId = cl.SummaryOrderId,
+            CustomerId = cl.CustomerId,
+            WarehouseId = cl.WarehouseId,
+            ContainerType = cl.ContainerType,
+            ContainerNo = cl.ContainerNo,
+            SealNo = cl.SealNo,
             ShipmentMode = string.IsNullOrWhiteSpace(request.ShipmentMode) ? "SEA" : request.ShipmentMode!,
             Carrier = request.Carrier,
             DeparturePort = request.DeparturePort,
             DestinationPort = request.DestinationPort,
-            Etd = request.Etd ?? DateTime.Today,
+            Etd = request.Etd,
             Eta = request.Eta,
-            Currency = string.IsNullOrWhiteSpace(request.Currency) ? "RMB" : request.Currency.Trim().ToUpperInvariant(),
+            Currency = RmbMoneyService.Currency,
             Status = "draft",
+            CalculatedTotalCbm = RmbMoneyService.Round(cl.TotalCbm),
+            FinalTotalCbm = RmbMoneyService.Round(cl.TotalCbm),
+            CalculatedGrossWeightKg = RmbMoneyService.Round(cl.TotalGwKg),
+            FinalGrossWeightKg = RmbMoneyService.Round(cl.TotalGwKg),
             Remark = $"由装柜单 {cl.No} 生成",
             CreatedAt = DateTime.Now
         };
@@ -91,10 +135,7 @@ public class ShipmentsController : ControllerBase
         cl.Status = "shipment_created";
         cl.UpdatedAt = DateTime.Now;
         await _db.SaveChangesAsync();
-        await DocumentLineCopyService.CopyAsync(_db, "CL", cl.Id, "SHP", shipment.Id);
-        await _db.SaveChangesAsync();
         await _expenseService.EnsureDefaultsAsync(shipment.Id);
-        await _measurementService.RecalculateAsync(shipment.Id, true);
         return shipment;
     }
 
@@ -103,25 +144,32 @@ public class ShipmentsController : ControllerBase
     {
         var source = await _db.Shipments.FindAsync(id);
         if (source == null) return NotFound();
+        if (source.ContainerLoadId.HasValue)
+        {
+            throw new BusinessRuleException(
+                "CONTAINER_SHIPMENT_CANNOT_BE_COPIED",
+                "一张装柜单只能对应一张出运单，不能复制关联装柜单的出运单");
+        }
+
         var copy = new Shipment
         {
             No = NumberService.NewNo("SHP"),
-            ContainerLoadId = source.ContainerLoadId,
+            ContainerLoadId = null,
             SummaryOrderId = source.SummaryOrderId,
+            CustomerId = source.CustomerId,
+            WarehouseId = source.WarehouseId,
             ShipmentMode = source.ShipmentMode,
             Carrier = source.Carrier,
             DeparturePort = source.DeparturePort,
             DestinationPort = source.DestinationPort,
             Etd = DateTime.Today,
             Eta = source.Eta,
-            Currency = source.Currency,
+            Currency = RmbMoneyService.Currency,
             Status = "draft",
             Remark = $"复制自 {source.No}",
             CreatedAt = DateTime.Now
         };
         _db.Shipments.Add(copy);
-        await _db.SaveChangesAsync();
-        await DocumentLineCopyService.CopyAsync(_db, "SHP", source.Id, "SHP", copy.Id);
         await _db.SaveChangesAsync();
         await _expenseService.EnsureDefaultsAsync(copy.Id);
 
@@ -140,7 +188,7 @@ public class ShipmentsController : ControllerBase
                     IsCustom = true,
                     SupplierId = sourceExpense.SupplierId,
                     Amount = sourceExpense.Amount,
-                    Currency = copy.Currency,
+                    Currency = RmbMoneyService.Currency,
                     SortNo = sourceExpense.SortNo,
                     Remark = sourceExpense.Remark,
                     CreatedAt = DateTime.Now
@@ -151,13 +199,13 @@ public class ShipmentsController : ControllerBase
                 var target = copyExpenses.First(x => x.ExpenseCode == sourceExpense.ExpenseCode);
                 target.SupplierId = sourceExpense.SupplierId;
                 target.Amount = sourceExpense.Amount;
+                target.Currency = RmbMoneyService.Currency;
                 target.Remark = sourceExpense.Remark;
                 target.UpdatedAt = DateTime.Now;
             }
         }
         await _db.SaveChangesAsync();
         await _expenseService.RecalculateExpenseTotalAsync(copy.Id);
-        await _measurementService.RecalculateAsync(copy.Id, true);
         return copy;
     }
 
@@ -166,21 +214,11 @@ public class ShipmentsController : ControllerBase
     {
         var entity = await _db.Shipments.FindAsync(id);
         if (entity == null) return NotFound();
+        if (entity.Status is "shipped" or "completed")
+            throw new BusinessRuleException("SHIPMENT_LOCKED", "已发运出运单不能直接修改");
+        if (input.ContainerLoadId != entity.ContainerLoadId)
+            throw new BusinessRuleException("SHIPMENT_CONTAINER_LOCKED", "出运单的装柜单来源不能修改");
 
-        var newCurrency = string.IsNullOrWhiteSpace(input.Currency) ? entity.Currency : input.Currency.Trim().ToUpperInvariant();
-        if (!string.Equals(entity.Currency, newCurrency, StringComparison.OrdinalIgnoreCase))
-        {
-            var hasFinance = await _db.ShipmentExpenses
-                .Where(x => x.ShipmentId == id && x.FinanceRecordId.HasValue)
-                .AnyAsync();
-            if (hasFinance) return BadRequest(new { message = "已生成应付，不能直接修改出运单币种" });
-            entity.Currency = newCurrency;
-            var expenses = await _db.ShipmentExpenses.Where(x => x.ShipmentId == id).ToListAsync();
-            foreach (var expense in expenses) expense.Currency = newCurrency;
-        }
-
-        entity.ContainerLoadId = input.ContainerLoadId;
-        entity.SummaryOrderId = input.SummaryOrderId;
         entity.ShipmentMode = input.ShipmentMode;
         entity.Carrier = input.Carrier;
         entity.VesselVoyage = input.VesselVoyage;
@@ -189,6 +227,7 @@ public class ShipmentsController : ControllerBase
         entity.DestinationPort = input.DestinationPort;
         entity.Etd = input.Etd;
         entity.Eta = input.Eta;
+        entity.Currency = RmbMoneyService.Currency;
         entity.FinalTotalCbm = FinanceBalanceService.Round2(input.FinalTotalCbm);
         entity.FinalGrossWeightKg = FinanceBalanceService.Round2(input.FinalGrossWeightKg);
         entity.FinalNetWeightKg = FinanceBalanceService.Round2(input.FinalNetWeightKg);
@@ -237,6 +276,8 @@ public class ShipmentsController : ControllerBase
             .Join(_db.FinanceRecords, x => x.FinanceRecordId, x => x.Id, (expense, finance) => finance)
             .AnyAsync(x => x.PaidAmount > 0m || x.PrepaymentAppliedAmount > 0m);
         if (hasSettledFinance) return BadRequest(new { message = "出运费用已有付款或预付款抵扣，不能删除出运单" });
+        if (entity.ContainerLoadId.HasValue)
+            throw new BusinessRuleException("CONTAINER_SHIPMENT_CANNOT_BE_DELETED", "装柜确认自动生成的出运单不能直接删除");
 
         entity.IsDeleted = true;
         entity.UpdatedAt = DateTime.Now;
@@ -255,6 +296,7 @@ public class ShipmentsController : ControllerBase
             await _expenseService.ValidateAllAsync(id);
             await _measurementService.RecalculateAsync(id, false);
             shipment.Status = targetStatus;
+            shipment.Currency = RmbMoneyService.Currency;
             shipment.UpdatedAt = DateTime.Now;
             await _db.SaveChangesAsync();
             await _financeSyncService.SyncAsync(id);
