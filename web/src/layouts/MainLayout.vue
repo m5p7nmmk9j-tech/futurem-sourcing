@@ -36,6 +36,12 @@
             <el-menu-item index="/shipments">出运单</el-menu-item>
           </el-sub-menu>
 
+          <el-sub-menu index="warehouse">
+            <template #title>仓库管理</template>
+            <el-menu-item index="/warehouses">仓库与库位</el-menu-item>
+            <el-menu-item index="/inventory">仓库库存</el-menu-item>
+          </el-sub-menu>
+
           <el-sub-menu index="finance">
             <template #title>财务管理</template>
             <el-menu-item index="/finance-records">应收应付</el-menu-item>
