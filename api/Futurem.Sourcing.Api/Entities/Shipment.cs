@@ -41,8 +41,15 @@ public class Shipment : BaseEntity
     [Column(TypeName = "decimal(18,2)")]
     public decimal FinalNetWeightKg { get; set; }
 
+    // Provider-side logistics cost total.
     [Column(TypeName = "decimal(18,2)")]
     public decimal ExpenseTotal { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal CustomerChargeTotal { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal LogisticsProfitTotal { get; set; }
 
     public string FinanceSyncStatus { get; set; } = "not_synced";
     public string? FinanceSyncMessage { get; set; }
