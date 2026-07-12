@@ -1,76 +1,253 @@
 <template>
   <div class="page">
-    <div class="page-header"><div class="page-title">Container 装柜</div><el-button type="primary" @click="openCreate">新增装柜单</el-button></div>
-    <div class="card">
-      <div class="toolbar"><el-select v-model="summaryOrderId" placeholder="按SO筛选" clearable filterable style="width:300px" @change="load"><el-option v-for="s in summaryOrders" :key="s.id" :label="s.no" :value="s.id" /></el-select><el-button @click="load">刷新</el-button><el-button type="primary" @click="recommendBySo">按SO推荐柜型</el-button></div>
-      <el-table :data="rows" border stripe>
-        <el-table-column label="装柜单号" width="190"><template #default="scope"><el-button link type="primary" class="document-no" @click="openDocument(scope.row)">{{ scope.row.no }}</el-button></template></el-table-column>
-        <el-table-column prop="summaryOrderId" label="SO ID" width="100"/><el-table-column prop="containerType" label="柜型" width="120"/><el-table-column prop="containerNo" label="柜号" width="160"/><el-table-column prop="sealNo" label="封条号" width="160"/><el-table-column prop="loadDate" label="装柜日期" width="150"/><el-table-column prop="totalCartons" label="箱数" width="100"/><el-table-column prop="totalCbm" label="CBM" width="100"/><el-table-column prop="totalGwKg" label="KG" width="100"/><el-table-column prop="status" label="状态" width="110"/>
-        <el-table-column label="操作" width="500" fixed="right"><template #default="scope"><el-button size="small" type="warning" @click="loadUtilization(scope.row)">容量预警</el-button><el-button size="small" type="primary" @click="recommendByContainer(scope.row)">推荐柜型</el-button><el-button size="small" type="primary" @click="openShipmentDialog(scope.row)">生成出运</el-button><el-button size="small" @click="openDocument(scope.row)">编辑</el-button><el-button size="small" @click="copy(scope.row.id)">复制</el-button><el-button size="small" type="danger" @click="remove(scope.row.id)">删除</el-button></template></el-table-column>
-      </el-table>
-      <el-alert v-if="recommendation.message" :type="recommendation.needSplit?'warning':'success'" :title="recommendation.message" show-icon style="margin-top:12px" />
-      <el-table v-if="recommendation.options?.length" :data="recommendation.options" border stripe size="small" style="margin-top:12px">
-        <el-table-column prop="containerType" label="柜型" width="100"/><el-table-column prop="capacityCbm" label="容量CBM" width="120"/><el-table-column prop="capacityKg" label="容量KG" width="120"/><el-table-column prop="cbmRate" label="CBM利用率%" width="130"/><el-table-column prop="weightRate" label="重量利用率%" width="130"/><el-table-column prop="remainingCbm" label="剩余CBM" width="120"/><el-table-column prop="remainingKg" label="剩余KG" width="120"/><el-table-column label="是否可装" width="100"><template #default="scope">{{ scope.row.ok ? '可以' : '超柜' }}</template></el-table-column>
-      </el-table>
-      <el-alert v-if="utilization.message" :type="utilization.level==='danger'?'error':utilization.level==='warning'?'warning':'success'" :title="utilization.message" show-icon style="margin-top:12px" />
-      <el-row v-if="utilization.message" :gutter="12" style="margin-top:12px">
-        <el-col :span="3"><el-statistic title="柜型" :value="utilization.containerType || '-'" /></el-col><el-col :span="3"><el-statistic title="容量CBM" :value="utilization.capacityCbm || 0" /></el-col><el-col :span="3"><el-statistic title="已装CBM" :value="utilization.cbm || 0" /></el-col><el-col :span="3"><el-statistic title="剩余CBM" :value="utilization.remainingCbm || 0" /></el-col><el-col :span="3"><el-statistic title="CBM利用率%" :value="utilization.cbmRate || 0" /></el-col><el-col :span="3"><el-statistic title="重量利用率%" :value="utilization.weightRate || 0" /></el-col><el-col :span="3"><el-statistic title="箱数" :value="utilization.cartons || 0" /></el-col><el-col :span="3"><el-statistic title="总KG" :value="utilization.gw || 0" /></el-col>
-      </el-row>
+    <div class="page-header">
+      <div>
+        <div class="page-title">装柜单</div>
+        <div class="page-subtitle">从同一客户、同一仓库的实际库存选货；草稿库存锁定固定72小时。</div>
+      </div>
+      <el-button type="primary" @click="openCreate">新增装柜单</el-button>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="form.id ? `编辑装柜单：${form.no || ''}` : '新增装柜单'" width="92%" destroy-on-close>
-      <el-alert title="保存装柜主单后，可在下方继续添加或编辑装柜商品明细。" type="info" show-icon style="margin-bottom:12px" />
-      <el-form label-width="110px">
+    <div class="card">
+      <div class="toolbar">
+        <el-select v-model="filters.customerId" clearable filterable placeholder="客户" style="width: 220px" @change="load">
+          <el-option v-for="customer in customers" :key="customer.id" :label="customer.name" :value="customer.id" />
+        </el-select>
+        <el-select v-model="filters.warehouseId" clearable filterable placeholder="仓库" style="width: 200px" @change="load">
+          <el-option v-for="row in warehouses" :key="row.warehouse.id" :label="row.warehouse.name" :value="row.warehouse.id" />
+        </el-select>
+        <el-button @click="load">刷新</el-button>
+      </div>
+
+      <el-table :data="rows" border stripe>
+        <el-table-column label="装柜单号" width="180">
+          <template #default="scope"><el-button link type="primary" class="document-no" @click="openDocument(scope.row)">{{ scope.row.no }}</el-button></template>
+        </el-table-column>
+        <el-table-column label="客户" min-width="150"><template #default="scope">{{ customerName(scope.row.customerId) }}</template></el-table-column>
+        <el-table-column label="仓库" min-width="130"><template #default="scope">{{ warehouseName(scope.row.warehouseId) }}</template></el-table-column>
+        <el-table-column prop="containerType" label="柜型" width="100" />
+        <el-table-column prop="containerNo" label="柜号" width="150" />
+        <el-table-column prop="sealNo" label="封条号" width="140" />
+        <el-table-column label="装柜日期" width="125"><template #default="scope">{{ dateText(scope.row.loadDate) }}</template></el-table-column>
+        <el-table-column label="箱数" width="90" align="right"><template #default="scope">{{ numberText(scope.row.totalCartons) }}</template></el-table-column>
+        <el-table-column label="CBM" width="90" align="right"><template #default="scope">{{ numberText(scope.row.totalCbm) }}</template></el-table-column>
+        <el-table-column label="毛重 KG" width="110" align="right"><template #default="scope">{{ numberText(scope.row.totalGwKg) }}</template></el-table-column>
+        <el-table-column label="状态" width="120"><template #default="scope"><el-tag :type="statusType(scope.row.status)">{{ statusLabel(scope.row.status) }}</el-tag></template></el-table-column>
+        <el-table-column label="锁定到期" width="170"><template #default="scope">{{ dateTimeText(scope.row.inventoryLockExpiresAt) }}</template></el-table-column>
+        <el-table-column label="操作" width="260" fixed="right">
+          <template #default="scope">
+            <el-button size="small" @click="openDocument(scope.row)">查看</el-button>
+            <el-button size="small" type="primary" @click="loadUtilization(scope.row)">容量</el-button>
+            <el-button v-if="scope.row.status === 'draft' || scope.row.status === 'lock_expired'" size="small" @click="copy(scope.row.id)">复制</el-button>
+            <el-button v-if="scope.row.status === 'draft' || scope.row.status === 'lock_expired' || scope.row.status === 'inventory_locked'" size="small" type="danger" @click="remove(scope.row.id)">取消</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-alert v-if="utilization.message" :type="utilization.level === 'danger' ? 'error' : utilization.level === 'warning' ? 'warning' : 'success'" :title="utilization.message" show-icon style="margin-top: 12px" />
+    </div>
+
+    <el-dialog v-model="dialogVisible" :title="form.id ? `装柜单：${form.no || ''}` : '新增装柜单'" width="96%" destroy-on-close>
+      <el-form label-width="105px" :disabled="form.status === 'confirmed' || form.status === 'completed'">
         <el-row :gutter="16">
-          <el-col :span="12"><el-form-item label="SO"><el-select v-model="form.summaryOrderId" filterable clearable style="width:100%"><el-option v-for="s in summaryOrders" :key="s.id" :label="s.no" :value="s.id" /></el-select></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="柜型"><el-select v-model="form.containerType" style="width:100%"><el-option label="20GP" value="20GP"/><el-option label="40GP" value="40GP"/><el-option label="40HQ" value="40HQ"/><el-option label="45HQ" value="45HQ"/></el-select></el-form-item></el-col>
-          <el-col :span="8"><el-form-item label="柜号"><el-input v-model="form.containerNo" /></el-form-item></el-col>
-          <el-col :span="8"><el-form-item label="封条号"><el-input v-model="form.sealNo" /></el-form-item></el-col>
-          <el-col :span="8"><el-form-item label="装柜日期"><el-date-picker v-model="form.loadDate" type="date" value-format="YYYY-MM-DD" style="width:100%" /></el-form-item></el-col>
-          <el-col :span="8"><el-form-item label="箱数"><el-input-number v-model="form.totalCartons" :min="0" style="width:100%" /></el-form-item></el-col>
-          <el-col :span="8"><el-form-item label="CBM"><el-input-number v-model="form.totalCbm" :min="0" :precision="3" style="width:100%" /></el-form-item></el-col>
-          <el-col :span="8"><el-form-item label="KG"><el-input-number v-model="form.totalGwKg" :min="0" :precision="2" style="width:100%" /></el-form-item></el-col>
-          <el-col :span="8"><el-form-item label="状态"><el-input v-model="form.status" /></el-form-item></el-col>
-          <el-col :span="24"><el-form-item label="备注"><el-input v-model="form.remark" type="textarea" /></el-form-item></el-col>
+          <el-col :span="6">
+            <el-form-item label="客户">
+              <el-select v-model="form.customerId" filterable placeholder="选择客户" style="width: 100%" :disabled="sourceLocked">
+                <el-option v-for="customer in customers" :key="customer.id" :label="customer.name" :value="customer.id" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item label="仓库">
+              <el-select v-model="form.warehouseId" filterable placeholder="选择仓库" style="width: 100%" :disabled="sourceLocked">
+                <el-option v-for="row in warehouses" :key="row.warehouse.id" :label="row.warehouse.name" :value="row.warehouse.id" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="4"><el-form-item label="柜型"><el-select v-model="form.containerType" style="width: 100%"><el-option label="20GP" value="20GP" /><el-option label="40GP" value="40GP" /><el-option label="40HQ" value="40HQ" /><el-option label="45HQ" value="45HQ" /></el-select></el-form-item></el-col>
+          <el-col :span="4"><el-form-item label="装柜日期"><el-date-picker v-model="form.loadDate" type="date" value-format="YYYY-MM-DD" style="width: 100%" /></el-form-item></el-col>
+          <el-col :span="4"><el-form-item label="状态"><el-input :model-value="statusLabel(form.status)" disabled /></el-form-item></el-col>
+          <el-col :span="6"><el-form-item label="柜号"><el-input v-model="form.containerNo" /></el-form-item></el-col>
+          <el-col :span="6"><el-form-item label="封条号"><el-input v-model="form.sealNo" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item label="备注"><el-input v-model="form.remark" /></el-form-item></el-col>
         </el-row>
       </el-form>
-      <DocumentLinesEditor v-if="form.id" document-type="CL" :document-id="form.id" />
-      <template #footer><el-button @click="dialogVisible=false">关闭</el-button><el-button type="primary" @click="save">保存主单</el-button></template>
-    </el-dialog>
 
-    <el-dialog v-model="shipmentDialogVisible" title="生成出运单" width="620px">
-      <el-alert title="从装柜单生成出运单，会复制装柜明细到出运明细。" type="info" show-icon style="margin-bottom:12px" />
-      <el-form label-width="110px"><el-form-item label="运输方式"><el-select v-model="shipmentForm.shipmentMode" style="width:100%"><el-option label="海运" value="SEA"/><el-option label="空运" value="AIR"/><el-option label="快递" value="EXPRESS"/><el-option label="直发" value="DIRECT"/></el-select></el-form-item><el-form-item label="承运人"><el-input v-model="shipmentForm.carrier" /></el-form-item><el-form-item label="起运港"><el-input v-model="shipmentForm.departurePort" /></el-form-item><el-form-item label="目的港"><el-input v-model="shipmentForm.destinationPort" /></el-form-item><el-form-item label="ETD"><el-date-picker v-model="shipmentForm.etd" type="date" value-format="YYYY-MM-DD" style="width:100%" /></el-form-item><el-form-item label="ETA"><el-date-picker v-model="shipmentForm.eta" type="date" value-format="YYYY-MM-DD" style="width:100%" /></el-form-item></el-form>
-      <template #footer><el-button @click="shipmentDialogVisible=false">取消</el-button><el-button type="primary" @click="generateShipment">生成出运单</el-button></template>
+      <el-row v-if="form.id" :gutter="12" class="summary-stats">
+        <el-col :span="6"><el-statistic title="锁定箱数" :value="Number(form.totalCartons || 0)" /></el-col>
+        <el-col :span="6"><el-statistic title="总体积 CBM" :value="Number(form.totalCbm || 0)" /></el-col>
+        <el-col :span="6"><el-statistic title="总毛重 KG" :value="Number(form.totalGwKg || 0)" /></el-col>
+        <el-col :span="6"><el-statistic title="锁定批次数" :value="activeReservations.length" /></el-col>
+      </el-row>
+
+      <ContainerReservationStatus
+        v-if="form.id"
+        :status="form.status"
+        :expires-at="form.inventoryLockExpiresAt"
+        @release="releaseInventory"
+        @relock="relockInventory"
+      />
+
+      <InventoryPicker
+        v-if="form.id && (form.status === 'draft' || form.status === 'lock_expired')"
+        ref="inventoryPicker"
+        :customer-id="form.customerId"
+        :warehouse-id="form.warehouseId"
+        @change="selectedInventory = $event"
+      />
+
+      <div v-if="activeReservations.length" class="locked-items">
+        <div class="section-title">已锁定库存</div>
+        <el-table :data="activeReservations" border stripe size="small" max-height="360">
+          <el-table-column prop="lot.lotNo" label="批次" width="150" />
+          <el-table-column prop="product.customerItemNo" label="客户货号" width="130" />
+          <el-table-column prop="product.customerBarcode" label="客户条码" width="150" />
+          <el-table-column prop="product.nameCn" label="商品名称" min-width="180" />
+          <el-table-column label="锁定数量" width="110" align="right"><template #default="scope">{{ numberText(scope.row.reservation.reservedQuantity) }}</template></el-table-column>
+          <el-table-column label="锁定箱数" width="110" align="right"><template #default="scope">{{ numberText(scope.row.reservation.reservedCartons) }}</template></el-table-column>
+          <el-table-column label="锁定时间" width="170"><template #default="scope">{{ dateTimeText(scope.row.reservation.lockedAt) }}</template></el-table-column>
+          <el-table-column label="到期时间" width="170"><template #default="scope">{{ dateTimeText(scope.row.reservation.expiresAt) }}</template></el-table-column>
+        </el-table>
+      </div>
+
+      <template #footer>
+        <el-button @click="dialogVisible = false">关闭</el-button>
+        <el-button v-if="form.status === 'draft' || form.status === 'lock_expired' || form.status === 'inventory_locked'" @click="save">保存主单</el-button>
+        <el-button v-if="form.id && form.status === 'draft'" type="primary" :disabled="selectedInventory.length === 0" @click="lockInventory">锁定库存72小时</el-button>
+        <el-button v-if="form.id && form.status === 'lock_expired'" type="primary" :disabled="selectedInventory.length === 0" @click="relockInventory">重新锁定库存</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
+
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '../api/http'
-import DocumentLinesEditor from '../components/DocumentLinesEditor.vue'
-const route = useRoute()
-const rows=ref<any[]>([]), summaryOrders=ref<any[]>([]), summaryOrderId=ref<number|null>(null), dialogVisible=ref(false), shipmentDialogVisible=ref(false), selectedContainerId=ref<number|null>(null)
-const form=reactive<any>({id:0,no:'',summaryOrderId:null,containerType:'40HQ',containerNo:'',sealNo:'',loadDate:'',status:'draft',totalCartons:0,totalCbm:0,totalGwKg:0,remark:''})
-const shipmentForm=reactive<any>({shipmentMode:'SEA',carrier:'',departurePort:'',destinationPort:'',etd:'',eta:''})
-const utilization=reactive<any>({})
-const recommendation=reactive<any>({})
-async function loadSummaryOrders(){summaryOrders.value=(await http.get('/summary-orders')).data}
-async function load(){const params:any={}; if(summaryOrderId.value)params.summaryOrderId=summaryOrderId.value; rows.value=(await http.get('/container-loads',{params})).data}
-function reset(){Object.assign(form,{id:0,no:'',summaryOrderId:null,containerType:'40HQ',containerNo:'',sealNo:'',loadDate:'',status:'draft',totalCartons:0,totalCbm:0,totalGwKg:0,remark:''})}
-function openCreate(){reset();dialogVisible.value=true} function openDocument(row:any){Object.assign(form,row);dialogVisible.value=true}
-async function loadUtilization(row:any){const res=await http.get(`/container-loads/${row.id}/utilization`); Object.assign(utilization,res.data)}
-async function recommendByContainer(row:any){const res=await http.get('/container-loads/recommend',{params:{containerLoadId:row.id}}); Object.assign(recommendation,res.data)}
-async function recommendBySo(){if(!summaryOrderId.value)return ElMessage.warning('请先选择 SO'); const res=await http.get('/container-loads/recommend',{params:{summaryOrderId:summaryOrderId.value}}); Object.assign(recommendation,res.data)}
-function openShipmentDialog(row:any){selectedContainerId.value=row.id; Object.assign(shipmentForm,{shipmentMode:'SEA',carrier:'',departurePort:'',destinationPort:'',etd:'',eta:''}); shipmentDialogVisible.value=true}
-async function save(){if(!form.containerType)return ElMessage.warning('请选择柜型'); const res=form.id?await http.put(`/container-loads/${form.id}`,form):await http.post('/container-loads',form); if(res.data)Object.assign(form,res.data); ElMessage.success('主单保存成功'); await load()}
-async function copy(id:number){await http.post(`/container-loads/${id}/copy`); ElMessage.success('复制成功'); await load()}
-async function generateShipment(){if(!selectedContainerId.value)return; const res=await http.post('/shipments/generate-from-container',{containerLoadId:selectedContainerId.value,...shipmentForm}); shipmentDialogVisible.value=false; ElMessage.success(`已生成出运单：${res.data?.no||''}`); await load()}
-async function remove(id:number){await ElMessageBox.confirm('确认删除该装柜单？','提示'); await http.delete(`/container-loads/${id}`); ElMessage.success('已删除'); await load()}
-onMounted(async()=>{const routeSoId=Number(route.query.summaryOrderId||0); if(routeSoId)summaryOrderId.value=routeSoId; await loadSummaryOrders(); await load(); const routeId=Number(route.query.id||0); const target=rows.value.find(x=>x.id===routeId); if(target)openDocument(target)})
+import InventoryPicker from '../components/InventoryPicker.vue'
+import ContainerReservationStatus from '../components/ContainerReservationStatus.vue'
+
+const rows = ref<any[]>([])
+const customers = ref<any[]>([])
+const warehouses = ref<any[]>([])
+const dialogVisible = ref(false)
+const inventoryPicker = ref<any>(null)
+const selectedInventory = ref<any[]>([])
+const reservationRows = ref<any[]>([])
+const utilization = reactive<any>({})
+const filters = reactive<any>({ customerId: null, warehouseId: null })
+const form = reactive<any>({})
+
+const activeReservations = computed(() => reservationRows.value.filter(row => row.reservation?.status === 'active'))
+const sourceLocked = computed(() => form.status === 'inventory_locked' || activeReservations.value.length > 0)
+
+function reset() {
+  Object.assign(form, {
+    id: 0,
+    no: '',
+    customerId: null,
+    warehouseId: null,
+    summaryOrderId: null,
+    containerType: '40HQ',
+    containerNo: '',
+    sealNo: '',
+    loadDate: new Date().toISOString().slice(0, 10),
+    status: 'draft',
+    inventoryLockedAt: null,
+    inventoryLockExpiresAt: null,
+    totalCartons: 0,
+    totalCbm: 0,
+    totalGwKg: 0,
+    remark: ''
+  })
+  selectedInventory.value = []
+  reservationRows.value = []
+}
+
+async function loadMasterData() {
+  const [customerResponse, warehouseResponse] = await Promise.all([http.get('/customers'), http.get('/warehouses')])
+  customers.value = customerResponse.data || []
+  warehouses.value = warehouseResponse.data || []
+}
+async function load() {
+  const params: Record<string, number> = {}
+  if (filters.customerId) params.customerId = filters.customerId
+  if (filters.warehouseId) params.warehouseId = filters.warehouseId
+  rows.value = (await http.get('/container-loads', { params })).data || []
+}
+function openCreate() { reset(); dialogVisible.value = true }
+async function openDocument(row: any) {
+  const response = await http.get(`/container-loads/${row.id}`)
+  Object.assign(form, response.data)
+  selectedInventory.value = []
+  await loadReservations()
+  dialogVisible.value = true
+}
+async function loadReservations() {
+  if (!form.id) return
+  const response = await http.get(`/container-loads/${form.id}/reservations`)
+  Object.assign(form, response.data.container)
+  reservationRows.value = response.data.items || []
+}
+async function save() {
+  if (!form.customerId) return ElMessage.warning('请选择客户')
+  if (!form.warehouseId) return ElMessage.warning('请选择仓库')
+  if (!form.containerType) return ElMessage.warning('请选择柜型')
+  const payload = {
+    customerId: form.customerId,
+    warehouseId: form.warehouseId,
+    summaryOrderId: form.summaryOrderId,
+    containerType: form.containerType,
+    containerNo: form.containerNo,
+    sealNo: form.sealNo,
+    loadDate: form.loadDate || null,
+    remark: form.remark
+  }
+  const response = form.id
+    ? await http.put(`/container-loads/${form.id}`, payload)
+    : await http.post('/container-loads', payload)
+  Object.assign(form, response.data)
+  ElMessage.success('装柜主单已保存；普通保存不会延长库存锁定时间')
+  await load()
+}
+async function lockInventory() {
+  if (!selectedInventory.value.length) return ElMessage.warning('请选择要锁定的库存')
+  await http.post(`/container-loads/${form.id}/lock-inventory`, { items: selectedInventory.value })
+  ElMessage.success('库存已锁定72小时')
+  await Promise.all([loadReservations(), load()])
+}
+async function relockInventory() {
+  if (!selectedInventory.value.length) return ElMessage.warning('请重新选择要锁定的库存')
+  await http.post(`/container-loads/${form.id}/relock-inventory`, { items: selectedInventory.value })
+  ElMessage.success('库存已重新锁定72小时')
+  await Promise.all([loadReservations(), load()])
+}
+async function releaseInventory() {
+  const result = await ElMessageBox.prompt('请输入释放原因', '释放库存锁定', { inputPattern: /\S+/, inputErrorMessage: '必须填写原因' })
+  await http.post(`/container-loads/${form.id}/release-inventory`, { reason: result.value })
+  ElMessage.success('库存锁定已释放')
+  await Promise.all([loadReservations(), load()])
+  await inventoryPicker.value?.load?.()
+}
+async function copy(id: number) { await http.post(`/container-loads/${id}/copy`); ElMessage.success('装柜主单已复制，库存需要重新选择'); await load() }
+async function remove(id: number) { await ElMessageBox.confirm('取消装柜草稿将立即释放已锁定库存，是否继续？', '取消装柜单'); await http.delete(`/container-loads/${id}`); ElMessage.success('装柜草稿已取消'); if (form.id === id) dialogVisible.value = false; await load() }
+async function loadUtilization(row: any) { const response = await http.get(`/container-loads/${row.id}/utilization`); Object.assign(utilization, response.data) }
+function customerName(id?: number | null) { return customers.value.find(x => x.id === id)?.name || '' }
+function warehouseName(id?: number | null) { return warehouses.value.find(x => x.warehouse.id === id)?.warehouse.name || '' }
+function numberText(value: unknown) { return Number(value || 0).toLocaleString('zh-CN', { maximumFractionDigits: 2 }) }
+function dateText(value?: string | null) { return value ? String(value).slice(0, 10) : '' }
+function dateTimeText(value?: string | null) { return value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '' }
+function statusLabel(status?: string | null) { return ({ draft: '草稿', inventory_locked: '库存已锁定', lock_expired: '锁定已过期', confirmed: '已装柜', shipment_created: '已生成出运', completed: '已完成', cancelled: '已取消' } as Record<string, string>)[status || ''] || status || '草稿' }
+function statusType(status?: string | null) { if (status === 'inventory_locked') return 'success'; if (status === 'lock_expired') return 'warning'; if (status === 'cancelled') return 'info'; if (status === 'confirmed' || status === 'completed') return 'primary'; return '' }
+
+onMounted(async () => { reset(); await Promise.all([loadMasterData(), load()]) })
 </script>
+
 <style scoped>
+.page-subtitle { margin-top: 4px; color: #64748b; font-size: 13px; }
+.toolbar { display: flex; gap: 10px; margin-bottom: 14px; }
 .document-no { font-weight: 700; }
+.summary-stats { margin: 8px 0 14px; padding: 12px; border-radius: 10px; background: #f8fafc; border: 1px solid #e5e7eb; }
+.locked-items { margin-top: 16px; }
+.section-title { margin-bottom: 10px; font-weight: 700; color: #1e293b; }
 </style>
