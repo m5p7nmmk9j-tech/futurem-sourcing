@@ -20,6 +20,7 @@ public class Shipment : BaseEntity
     public string? DestinationPort { get; set; }
     public DateTime? Etd { get; set; }
     public DateTime? Eta { get; set; }
+    public DateTime? ActualDepartureAt { get; set; }
     public string Status { get; set; } = "draft";
     public string Currency { get; set; } = "RMB";
 
@@ -41,7 +42,6 @@ public class Shipment : BaseEntity
     [Column(TypeName = "decimal(18,2)")]
     public decimal FinalNetWeightKg { get; set; }
 
-    // Provider-side logistics cost total.
     [Column(TypeName = "decimal(18,2)")]
     public decimal ExpenseTotal { get; set; }
 
