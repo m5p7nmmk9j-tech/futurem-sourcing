@@ -13,17 +13,24 @@ public class ContainerLoadsController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly ContainerReservationService _reservations;
+    private readonly ContainerConfirmationService _confirmation;
 
-    public ContainerLoadsController(AppDbContext db, ContainerReservationService reservations)
+    public ContainerLoadsController(
+        AppDbContext db,
+        ContainerReservationService reservations,
+        ContainerConfirmationService confirmation)
     {
         _db = db;
         _reservations = reservations;
+        _confirmation = confirmation;
     }
 
     public record GenerateFromSoRequest(long SummaryOrderId, string? ContainerType, DateTime? LoadDate);
     public record ReservationItemRequest(long InventoryLotId, decimal Quantity, decimal Cartons);
     public record LockInventoryRequest(List<ReservationItemRequest> Items);
     public record ReleaseInventoryRequest(string Reason);
+    public record ActualLoadLineRequest(long InventoryReservationId, decimal ActualQuantity, decimal ActualCartons);
+    public record ConfirmContainerRequest(List<ActualLoadLineRequest> Lines);
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ContainerLoad>>> List(
@@ -71,6 +78,28 @@ public class ContainerLoadsController : ControllerBase
         });
     }
 
+    [HttpGet("{id:long}/sources")]
+    public async Task<IActionResult> Sources(long id)
+    {
+        var container = await _db.ContainerLoads.FindAsync(id);
+        if (container is null) return NotFound();
+        var sources = await _db.ContainerLoadSources
+            .Where(x => x.ContainerLoadId == id)
+            .OrderBy(x => x.Id)
+            .ToListAsync();
+        var productIds = sources.Select(x => x.OrderProductId).Distinct().ToList();
+        var products = await _db.OrderProducts.Where(x => productIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id);
+        return Ok(new
+        {
+            container,
+            items = sources.Select(source =>
+            {
+                products.TryGetValue(source.OrderProductId, out var product);
+                return new { source, product };
+            })
+        });
+    }
+
     [HttpPost("{id:long}/lock-inventory")]
     public async Task<IActionResult> LockInventory(long id, LockInventoryRequest request)
     {
@@ -94,6 +123,24 @@ public class ContainerLoadsController : ControllerBase
     [HttpPost("{id:long}/release-inventory")]
     public async Task<IActionResult> ReleaseInventory(long id, ReleaseInventoryRequest request)
         => Ok(new { released = await _reservations.ReleaseAsync(id, request.Reason, CurrentUserId()) });
+
+    [HttpPost("{id:long}/confirm")]
+    public async Task<IActionResult> Confirm(long id, ConfirmContainerRequest request)
+    {
+        var result = await _confirmation.ConfirmAsync(
+            id,
+            request.Lines.Select(x => new ActualLoadInput(
+                x.InventoryReservationId,
+                x.ActualQuantity,
+                x.ActualCartons)).ToList(),
+            CurrentUserId());
+        return Ok(new
+        {
+            containerLoad = result.ContainerLoad,
+            receivable = result.Receivable,
+            shipment = result.Shipment
+        });
+    }
 
     [HttpGet("recommend")]
     public async Task<ActionResult<object>> Recommend([FromQuery] long? summaryOrderId = null, [FromQuery] long? containerLoadId = null)
