@@ -13,6 +13,8 @@ import SummaryOrders from './views/SummaryOrders.vue'
 import DeliveryNotices from './views/DeliveryNotices.vue'
 import ReceivingOrders from './views/ReceivingOrders.vue'
 import QcOrders from './views/QcOrders.vue'
+import Warehouses from './views/Warehouses.vue'
+import Inventory from './views/Inventory.vue'
 import ContainerLoads from './views/ContainerLoads.vue'
 import Shipments from './views/Shipments.vue'
 import FinanceRecords from './views/FinanceRecords.vue'
@@ -49,6 +51,8 @@ const router = createRouter({
         { path: 'delivery-notices', component: DeliveryNotices },
         { path: 'receiving-orders', component: ReceivingOrders },
         { path: 'qc-orders', component: QcOrders },
+        { path: 'warehouses', component: Warehouses },
+        { path: 'inventory', component: Inventory },
         { path: 'container-loads', component: ContainerLoads },
         { path: 'shipments', component: Shipments },
         { path: 'finance-records', component: FinanceRecords },
