@@ -6,12 +6,14 @@ public class Payment : BaseEntity
 {
     public string No { get; set; } = string.Empty;
     public string Direction { get; set; } = "receive";
-    public long FinanceRecordId { get; set; }
+    public long? FinanceRecordId { get; set; }
     public long? BankAccountId { get; set; }
     public string TargetType { get; set; } = string.Empty;
     public long TargetId { get; set; }
     public long? CustomerId { get; set; }
     public long? SupplierId { get; set; }
+    public long? LogisticsProviderId { get; set; }
+    public string CounterpartyType { get; set; } = string.Empty;
     public string PaymentMethod { get; set; } = "bank";
     public string Currency { get; set; } = "RMB";
 
@@ -26,4 +28,6 @@ public class Payment : BaseEntity
 
     public DateTime? PaymentDate { get; set; }
     public string? AttachmentUrl { get; set; }
+    public string Status { get; set; } = "draft";
+    public long? ReversedPaymentId { get; set; }
 }
