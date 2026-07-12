@@ -116,11 +116,17 @@ jobs:
             SHOW TABLES LIKE 'inventory_lots';
             SHOW TABLES LIKE 'inventory_transactions';
             SHOW TABLES LIKE 'inventory_reservations';
+            SHOW TABLES LIKE 'container_load_sources';
+            SHOW TABLES LIKE 'finance_record_lines';
             SHOW COLUMNS FROM container_loads LIKE 'customer_id';
             SHOW COLUMNS FROM container_loads LIKE 'warehouse_id';
             SHOW COLUMNS FROM container_loads LIKE 'inventory_lock_expires_at';
+            SHOW COLUMNS FROM shipments LIKE 'customer_id';
+            SHOW COLUMNS FROM shipments LIKE 'warehouse_id';
+            SHOW COLUMNS FROM shipments LIKE 'container_no';
             SHOW COLUMNS FROM shipments LIKE 'expense_total';
             SHOW COLUMNS FROM finance_records LIKE 'shipment_expense_id';
+            SHOW INDEX FROM shipments WHERE Key_name = 'ux_shipment_container_load';
           "
       - name: Show service status
         if: always()
