@@ -55,6 +55,7 @@ builder.Services.AddScoped<FinanceDocumentService>();
 builder.Services.AddScoped<ShipmentMeasurementService>();
 builder.Services.AddScoped<ShipmentExpenseService>();
 builder.Services.AddScoped<ShipmentDepartureService>();
+builder.Services.AddScoped<FifoSettlementService>();
 builder.Services.AddScoped<SupplierPrepaymentService>();
 builder.Services.AddScoped<ShipmentFinanceSyncService>();
 builder.Services.AddScoped<AuditTrailService>();
