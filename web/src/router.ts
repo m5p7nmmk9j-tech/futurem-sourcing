@@ -3,6 +3,7 @@ import MainLayout from './layouts/MainLayout.vue'
 import Dashboard from './views/Dashboard.vue'
 import Customers from './views/Customers.vue'
 import Suppliers from './views/Suppliers.vue'
+import LogisticsProviders from './views/LogisticsProviders.vue'
 import CustomerHistoryProducts from './views/CustomerHistoryProducts.vue'
 import CustomerImporterProfiles from './views/CustomerImporterProfiles.vue'
 import LabelMarkTemplates from './views/LabelMarkTemplates.vue'
@@ -40,6 +41,7 @@ const router = createRouter({
         { path: '', component: Dashboard },
         { path: 'customers', component: Customers },
         { path: 'suppliers', component: Suppliers },
+        { path: 'logistics-providers', component: LogisticsProviders },
         { path: 'products', redirect: '/customer-history-products' },
         { path: 'customer-history-products', component: CustomerHistoryProducts },
         { path: 'customer-importers', component: CustomerImporterProfiles },
