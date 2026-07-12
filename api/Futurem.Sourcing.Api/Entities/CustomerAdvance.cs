@@ -6,7 +6,8 @@ public class CustomerAdvance : BaseEntity
 {
     public string No { get; set; } = string.Empty;
     public long CustomerId { get; set; }
-    public long SourcePaymentId { get; set; }
+    public long? SourcePaymentId { get; set; }
+    public long? SourceAdjustmentId { get; set; }
     public string Currency { get; set; } = "RMB";
 
     [Column(TypeName = "decimal(18,2)")]
