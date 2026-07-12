@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Futurem.Sourcing.Api.Data;
 using Futurem.Sourcing.Api.Entities;
 using Futurem.Sourcing.Api.Services;
@@ -11,15 +12,29 @@ namespace Futurem.Sourcing.Api.Controllers;
 public class ContainerLoadsController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public ContainerLoadsController(AppDbContext db) { _db = db; }
+    private readonly ContainerReservationService _reservations;
+
+    public ContainerLoadsController(AppDbContext db, ContainerReservationService reservations)
+    {
+        _db = db;
+        _reservations = reservations;
+    }
 
     public record GenerateFromSoRequest(long SummaryOrderId, string? ContainerType, DateTime? LoadDate);
+    public record ReservationItemRequest(long InventoryLotId, decimal Quantity, decimal Cartons);
+    public record LockInventoryRequest(List<ReservationItemRequest> Items);
+    public record ReleaseInventoryRequest(string Reason);
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ContainerLoad>>> List([FromQuery] long? summaryOrderId)
+    public async Task<ActionResult<IEnumerable<ContainerLoad>>> List(
+        [FromQuery] long? summaryOrderId,
+        [FromQuery] long? customerId,
+        [FromQuery] long? warehouseId)
     {
         var query = _db.ContainerLoads.AsQueryable();
         if (summaryOrderId.HasValue) query = query.Where(x => x.SummaryOrderId == summaryOrderId.Value);
+        if (customerId.HasValue) query = query.Where(x => x.CustomerId == customerId.Value);
+        if (warehouseId.HasValue) query = query.Where(x => x.WarehouseId == warehouseId.Value);
         return await query.OrderByDescending(x => x.Id).Take(200).ToListAsync();
     }
 
@@ -30,6 +45,56 @@ public class ContainerLoadsController : ControllerBase
         return entity == null ? NotFound() : entity;
     }
 
+    [HttpGet("{id:long}/reservations")]
+    public async Task<IActionResult> Reservations(long id)
+    {
+        var container = await _db.ContainerLoads.FindAsync(id);
+        if (container is null) return NotFound();
+        var reservations = await _db.InventoryReservations
+            .Where(x => x.ContainerLoadId == id)
+            .OrderByDescending(x => x.Id)
+            .ToListAsync();
+        var lotIds = reservations.Select(x => x.InventoryLotId).Distinct().ToList();
+        var lots = await _db.InventoryLots.Where(x => lotIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id);
+        var productIds = lots.Values.Select(x => x.OrderProductId).Distinct().ToList();
+        var products = await _db.OrderProducts.Where(x => productIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id);
+        return Ok(new
+        {
+            container,
+            items = reservations.Select(reservation =>
+            {
+                lots.TryGetValue(reservation.InventoryLotId, out var lot);
+                OrderProduct? product = null;
+                if (lot is not null) products.TryGetValue(lot.OrderProductId, out product);
+                return new { reservation, lot, product };
+            })
+        });
+    }
+
+    [HttpPost("{id:long}/lock-inventory")]
+    public async Task<IActionResult> LockInventory(long id, LockInventoryRequest request)
+    {
+        var result = await _reservations.LockAsync(
+            id,
+            request.Items.Select(x => new InventoryReservationInput(x.InventoryLotId, x.Quantity, x.Cartons)).ToList(),
+            CurrentUserId());
+        return Ok(result);
+    }
+
+    [HttpPost("{id:long}/relock-inventory")]
+    public async Task<IActionResult> RelockInventory(long id, LockInventoryRequest request)
+    {
+        var result = await _reservations.RelockAsync(
+            id,
+            request.Items.Select(x => new InventoryReservationInput(x.InventoryLotId, x.Quantity, x.Cartons)).ToList(),
+            CurrentUserId());
+        return Ok(result);
+    }
+
+    [HttpPost("{id:long}/release-inventory")]
+    public async Task<IActionResult> ReleaseInventory(long id, ReleaseInventoryRequest request)
+        => Ok(new { released = await _reservations.ReleaseAsync(id, request.Reason, CurrentUserId()) });
+
     [HttpGet("recommend")]
     public async Task<ActionResult<object>> Recommend([FromQuery] long? summaryOrderId = null, [FromQuery] long? containerLoadId = null)
     {
@@ -38,19 +103,17 @@ public class ContainerLoadsController : ControllerBase
         {
             var cl = await _db.ContainerLoads.FindAsync(containerLoadId.Value);
             if (cl == null) return NotFound();
-            var lines = await _db.DocumentLines.Where(x => x.DocumentType == "CL" && x.DocumentId == cl.Id).ToListAsync();
-            cbm = lines.Sum(x => x.TotalCbm);
-            gw = lines.Sum(x => x.TotalGwKg);
-            cartons = lines.Sum(x => x.Cartons);
+            cbm = cl.TotalCbm;
+            gw = cl.TotalGwKg;
+            cartons = cl.TotalCartons;
         }
         else if (summaryOrderId.HasValue)
         {
             var so = await _db.SummaryOrders.FindAsync(summaryOrderId.Value);
             if (so == null) return NotFound();
-            var lines = await _db.DocumentLines.Where(x => x.DocumentType == "SO" && x.DocumentId == so.Id).ToListAsync();
-            cbm = lines.Sum(x => x.TotalCbm);
-            gw = lines.Sum(x => x.TotalGwKg);
-            cartons = lines.Sum(x => x.Cartons);
+            cbm = so.TotalCbm;
+            gw = so.TotalGrossWeightKg;
+            cartons = so.TotalCartons;
         }
         else return BadRequest("summaryOrderId or containerLoadId required");
 
@@ -80,10 +143,9 @@ public class ContainerLoadsController : ControllerBase
     {
         var cl = await _db.ContainerLoads.FindAsync(id);
         if (cl == null) return NotFound();
-        var lines = await _db.DocumentLines.Where(x => x.DocumentType == "CL" && x.DocumentId == cl.Id).ToListAsync();
-        var cartons = lines.Sum(x => x.Cartons);
-        var cbm = lines.Sum(x => x.TotalCbm);
-        var gw = lines.Sum(x => x.TotalGwKg);
+        var cartons = cl.TotalCartons;
+        var cbm = cl.TotalCbm;
+        var gw = cl.TotalGwKg;
         var cap = GetCapacity(cl.ContainerType);
         var cbmRate = cap.Cbm <= 0 ? 0 : Math.Round(cbm / cap.Cbm * 100, 2);
         var weightRate = cap.Kg <= 0 ? 0 : Math.Round(gw / cap.Kg * 100, 2);
@@ -112,9 +174,23 @@ public class ContainerLoadsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ContainerLoad>> Create(ContainerLoad input)
     {
+        if (!input.CustomerId.HasValue || input.CustomerId <= 0)
+            throw new BusinessRuleException("CONTAINER_CUSTOMER_REQUIRED", "请选择客户");
+        if (!input.WarehouseId.HasValue || input.WarehouseId <= 0)
+            throw new BusinessRuleException("CONTAINER_WAREHOUSE_REQUIRED", "请选择仓库");
+        if (!await _db.Customers.AnyAsync(x => x.Id == input.CustomerId.Value))
+            throw new BusinessRuleException("CUSTOMER_NOT_FOUND", "客户不存在");
+        if (!await _db.Warehouses.AnyAsync(x => x.Id == input.WarehouseId.Value && x.Status == "active"))
+            throw new BusinessRuleException("WAREHOUSE_NOT_FOUND", "仓库不存在或已停用");
+
         input.Id = 0;
         input.No = string.IsNullOrWhiteSpace(input.No) ? NumberService.NewNo("CL") : input.No;
-        input.Status = string.IsNullOrWhiteSpace(input.Status) ? "draft" : input.Status;
+        input.Status = "draft";
+        input.InventoryLockedAt = null;
+        input.InventoryLockExpiresAt = null;
+        input.TotalCartons = 0m;
+        input.TotalCbm = 0m;
+        input.TotalGwKg = 0m;
         input.CreatedAt = DateTime.Now;
         _db.ContainerLoads.Add(input);
         await _db.SaveChangesAsync();
@@ -127,26 +203,21 @@ public class ContainerLoadsController : ControllerBase
         if (request.SummaryOrderId <= 0) return BadRequest("SummaryOrderId required");
         var so = await _db.SummaryOrders.FindAsync(request.SummaryOrderId);
         if (so == null) return NotFound();
-
-        var lines = await _db.DocumentLines.Where(x => x.DocumentType == "SO" && x.DocumentId == so.Id).ToListAsync();
         var cl = new ContainerLoad
         {
             No = NumberService.NewNo("CL"),
             SummaryOrderId = so.Id,
+            CustomerId = so.CustomerId,
             ContainerType = string.IsNullOrWhiteSpace(request.ContainerType) ? "40HQ" : request.ContainerType!,
             LoadDate = request.LoadDate ?? DateTime.Today,
             Status = "draft",
-            TotalCartons = lines.Sum(x => x.Cartons),
-            TotalCbm = lines.Sum(x => x.TotalCbm),
-            TotalGwKg = lines.Sum(x => x.TotalGwKg),
-            Remark = $"由 SO {so.No} 生成",
+            TotalCartons = 0m,
+            TotalCbm = 0m,
+            TotalGwKg = 0m,
+            Remark = $"兼容创建：来源客户汇总单 {so.No}，请先选择仓库并从库存锁定商品",
             CreatedAt = DateTime.Now
         };
         _db.ContainerLoads.Add(cl);
-        so.Status = "container_created";
-        so.UpdatedAt = DateTime.Now;
-        await _db.SaveChangesAsync();
-        await DocumentLineCopyService.CopyAsync(_db, "SO", so.Id, "CL", cl.Id);
         await _db.SaveChangesAsync();
         return cl;
     }
@@ -160,18 +231,18 @@ public class ContainerLoadsController : ControllerBase
         {
             No = NumberService.NewNo("CL"),
             SummaryOrderId = source.SummaryOrderId,
+            CustomerId = source.CustomerId,
+            WarehouseId = source.WarehouseId,
             ContainerType = source.ContainerType,
             LoadDate = DateTime.Today,
             Status = "draft",
-            TotalCbm = source.TotalCbm,
-            TotalGwKg = source.TotalGwKg,
-            TotalCartons = source.TotalCartons,
-            Remark = $"复制自 {source.No}",
+            TotalCbm = 0m,
+            TotalGwKg = 0m,
+            TotalCartons = 0m,
+            Remark = $"复制自 {source.No}，库存未复制，请重新选择并锁定",
             CreatedAt = DateTime.Now
         };
         _db.ContainerLoads.Add(copy);
-        await _db.SaveChangesAsync();
-        await DocumentLineCopyService.CopyAsync(_db, "CL", source.Id, "CL", copy.Id);
         await _db.SaveChangesAsync();
         return copy;
     }
@@ -181,17 +252,26 @@ public class ContainerLoadsController : ControllerBase
     {
         var entity = await _db.ContainerLoads.FindAsync(id);
         if (entity == null) return NotFound();
-        entity.SummaryOrderId = input.SummaryOrderId;
+        if (entity.Status is "confirmed" or "completed" or "shipment_created")
+            throw new BusinessRuleException("CONTAINER_LOCKED", "已确认装柜单不能直接修改");
+
+        var hasActiveReservations = await _db.InventoryReservations
+            .AnyAsync(x => x.ContainerLoadId == id && x.Status == "active");
+        if (hasActiveReservations &&
+            (input.CustomerId != entity.CustomerId || input.WarehouseId != entity.WarehouseId))
+        {
+            throw new BusinessRuleException("CONTAINER_SOURCE_LOCKED", "释放库存锁定后才能修改客户或仓库");
+        }
+
+        entity.CustomerId = input.CustomerId;
+        entity.WarehouseId = input.WarehouseId;
         entity.ContainerType = input.ContainerType;
         entity.ContainerNo = input.ContainerNo;
         entity.SealNo = input.SealNo;
         entity.LoadDate = input.LoadDate;
-        entity.Status = input.Status;
-        entity.TotalCbm = input.TotalCbm;
-        entity.TotalGwKg = input.TotalGwKg;
-        entity.TotalCartons = input.TotalCartons;
         entity.Remark = input.Remark;
         entity.UpdatedAt = DateTime.Now;
+        // 普通保存不得修改状态、锁定时间或到期时间。
         await _db.SaveChangesAsync();
         return entity;
     }
@@ -201,11 +281,17 @@ public class ContainerLoadsController : ControllerBase
     {
         var entity = await _db.ContainerLoads.FindAsync(id);
         if (entity == null) return NotFound();
+        if (await _db.InventoryReservations.AnyAsync(x => x.ContainerLoadId == id && x.Status == "active"))
+            await _reservations.ReleaseAsync(id, "删除装柜草稿，释放库存", CurrentUserId());
         entity.IsDeleted = true;
+        entity.Status = "cancelled";
         entity.UpdatedAt = DateTime.Now;
         await _db.SaveChangesAsync();
         return Ok(new { ok = true });
     }
+
+    private long? CurrentUserId()
+        => long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
 
     private static (decimal Cbm, decimal Kg) GetCapacity(string? containerType)
     {
