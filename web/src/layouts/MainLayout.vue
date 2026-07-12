@@ -28,7 +28,7 @@
             <el-menu-item index="/shipments">出运单</el-menu-item>
           </el-sub-menu>
           <el-sub-menu index="warehouse"><template #title>仓库管理</template><el-menu-item index="/warehouses">仓库与库位</el-menu-item><el-menu-item index="/inventory">仓库库存</el-menu-item></el-sub-menu>
-          <el-sub-menu index="finance"><template #title>财务管理</template><el-menu-item index="/finance-records">应收应付</el-menu-item><el-menu-item index="/bank-accounts">资金账户</el-menu-item></el-sub-menu>
+          <el-sub-menu index="finance"><template #title>财务管理</template><el-menu-item index="/finance-records">应收应付</el-menu-item><el-menu-item index="/financial-adjustments">财务调整单</el-menu-item><el-menu-item index="/bank-accounts">资金账户</el-menu-item></el-sub-menu>
           <el-sub-menu index="platform"><template #title>系统管理</template><el-menu-item index="/message-center">消息中心</el-menu-item><el-menu-item index="/approvals">审批流</el-menu-item><el-menu-item index="/rbac">权限管理</el-menu-item><el-menu-item index="/audit-logs">操作日志</el-menu-item><el-menu-item index="/print-center">打印中心</el-menu-item><el-menu-item index="/excel-center">Excel 中心</el-menu-item><el-menu-item index="/system-settings">系统参数</el-menu-item><el-menu-item index="/backup-center">备份中心</el-menu-item><el-menu-item index="/monitor-center">系统监控</el-menu-item></el-sub-menu>
         </el-menu>
       </el-scrollbar>
