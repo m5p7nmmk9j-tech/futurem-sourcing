@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Futurem.Sourcing.Api.Data;
+using Futurem.Sourcing.Api.Entities;
 using Futurem.Sourcing.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -70,13 +71,15 @@ public sealed class InventoryController : ControllerBase
             products.TryGetValue(lot.OrderProductId, out var product);
             purchaseOrders.TryGetValue(lot.PurchaseOrderId, out var po);
             warehouses.TryGetValue(lot.WarehouseId, out var warehouse);
-            if (lot.WarehouseLocationId.HasValue) locations.TryGetValue(lot.WarehouseLocationId.Value, out var location);
-            else location = null;
+            WarehouseLocation? location = null;
+            if (lot.WarehouseLocationId.HasValue)
+                locations.TryGetValue(lot.WarehouseLocationId.Value, out location);
             customers.TryGetValue(lot.CustomerId, out var customer);
             suppliers.TryGetValue(lot.SupplierId, out var supplier);
             receivings.TryGetValue(lot.ReceivingOrderId, out var receiving);
-            if (lot.SummaryOrderId.HasValue) summaries.TryGetValue(lot.SummaryOrderId.Value, out var summary);
-            else summary = null;
+            SummaryOrder? summary = null;
+            if (lot.SummaryOrderId.HasValue)
+                summaries.TryGetValue(lot.SummaryOrderId.Value, out summary);
             return new { lot, product, purchaseOrder = po, warehouse, location, customer, supplier, receiving, summary };
         });
 
