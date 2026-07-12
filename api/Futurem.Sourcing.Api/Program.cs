@@ -42,15 +42,19 @@ builder.Services.AddScoped<SummaryReservationSchemaUpgradeService>();
 builder.Services.AddScoped<DeliveryNoticeSchemaUpgradeService>();
 builder.Services.AddScoped<QcConfirmationSchemaUpgradeService>();
 builder.Services.AddScoped<InventorySchemaUpgradeService>();
+builder.Services.AddScoped<ContainerReservationSchemaUpgradeService>();
 builder.Services.AddScoped<DeliveryNoticeService>();
 builder.Services.AddScoped<QcConfirmationService>();
 builder.Services.AddScoped<SummaryReservationService>();
 builder.Services.AddScoped<InventoryService>();
+builder.Services.AddScoped<ContainerReservationService>();
 builder.Services.AddScoped<ShipmentMeasurementService>();
 builder.Services.AddScoped<ShipmentExpenseService>();
 builder.Services.AddScoped<SupplierPrepaymentService>();
 builder.Services.AddScoped<ShipmentFinanceSyncService>();
 builder.Services.AddScoped<AuditTrailService>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddHostedService<ContainerReservationExpiryWorker>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? builder.Configuration.GetConnectionString("Default")
@@ -108,6 +112,8 @@ using (var scope = app.Services.CreateScope())
     await qcConfirmationUpgrade.UpgradeAsync();
     var inventoryUpgrade = scope.ServiceProvider.GetRequiredService<InventorySchemaUpgradeService>();
     await inventoryUpgrade.UpgradeAsync();
+    var containerReservationUpgrade = scope.ServiceProvider.GetRequiredService<ContainerReservationSchemaUpgradeService>();
+    await containerReservationUpgrade.UpgradeAsync();
 }
 
 app.UseMiddleware<BusinessRuleExceptionMiddleware>();
