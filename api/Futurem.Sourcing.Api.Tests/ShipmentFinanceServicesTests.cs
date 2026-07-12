@@ -38,7 +38,7 @@ public class ShipmentFinanceServicesTests
     }
 
     [Fact]
-    public async Task ExpenseDefaults_AreCreatedOnceAndUseShipmentCurrency()
+    public async Task ExpenseDefaults_AreCreatedOnceAndUseRmb()
     {
         await using var db = TestDbFactory.Create();
         var shipment = new Shipment { No = "SHP-2", Currency = "USD" };
@@ -50,8 +50,9 @@ public class ShipmentFinanceServicesTests
         await service.EnsureDefaultsAsync(shipment.Id);
 
         var rows = db.ShipmentExpenses.Where(x => x.ShipmentId == shipment.Id).ToList();
-        Assert.Equal(4, rows.Count);
-        Assert.All(rows, row => Assert.Equal("USD", row.Currency));
+        Assert.Equal(6, rows.Count);
+        Assert.All(rows, row => Assert.Equal("RMB", row.Currency));
+        Assert.Equal("RMB", shipment.Currency);
     }
 
     [Fact]
@@ -75,32 +76,43 @@ public class ShipmentFinanceServicesTests
     }
 
     [Fact]
-    public async Task ShipmentSync_IsIdempotentAndCreatesOnePayablePerPositiveExpense()
+    public async Task ShipmentSync_IsIdempotentAndCreatesOnePayablePerPositiveLogisticsExpense()
     {
         await using var db = TestDbFactory.Create();
-        var shipment = new Shipment { No = "SHP-3", Currency = "USD", Status = "confirmed" };
-        db.Shipments.Add(shipment);
+        var shipment = new Shipment { No = "SHP-3", Currency = "RMB", Status = "confirmed" };
+        var provider1 = new LogisticsProvider { Code = "LP-1", Name = "货代", Status = "active" };
+        var provider2 = new LogisticsProvider { Code = "LP-2", Name = "仓库服务商", Status = "active" };
+        db.AddRange(shipment, provider1, provider2);
         await db.SaveChangesAsync();
         db.ShipmentExpenses.AddRange(
-            new ShipmentExpense { ShipmentId = shipment.Id, ExpenseCode = "OCEAN_FREIGHT", ExpenseName = "海运费", NormalizedExpenseName = "海运费", SupplierId = 1, Amount = 1000m, Currency = "USD" },
-            new ShipmentExpense { ShipmentId = shipment.Id, ExpenseCode = "WAREHOUSE_FEE", ExpenseName = "仓库费", NormalizedExpenseName = "仓库费", SupplierId = 2, Amount = 300m, Currency = "USD" });
+            new ShipmentExpense { ShipmentId = shipment.Id, ExpenseCode = "OCEAN_FREIGHT", ExpenseName = "海运费", NormalizedExpenseName = "海运费", ServiceType = "ocean_freight", LogisticsProviderId = provider1.Id, ProviderCost = 1000m, CustomerCharge = 1200m, Currency = "RMB" },
+            new ShipmentExpense { ShipmentId = shipment.Id, ExpenseCode = "WAREHOUSE_FEE", ExpenseName = "仓储费", NormalizedExpenseName = "仓储费", ServiceType = "warehouse", LogisticsProviderId = provider2.Id, ProviderCost = 300m, CustomerCharge = 400m, Currency = "RMB" });
         await db.SaveChangesAsync();
 
         var expenseService = new ShipmentExpenseService(db);
-        var prepaymentService = new SupplierPrepaymentService(db);
-        var syncService = new ShipmentFinanceSyncService(db, expenseService, prepaymentService);
+        var syncService = new ShipmentFinanceSyncService(db, expenseService, new SupplierPrepaymentService(db));
         await syncService.SyncAsync(shipment.Id);
         await syncService.SyncAsync(shipment.Id);
 
         Assert.Equal(2, db.FinanceRecords.Count(x => x.RecordType == "payable" && x.Amount > 0m));
+        Assert.All(db.FinanceRecords.Where(x => x.RecordType == "payable"), x =>
+        {
+            Assert.Equal("logistics_provider", x.CounterpartyType);
+            Assert.Null(x.SupplierId);
+            Assert.NotNull(x.LogisticsProviderId);
+        });
+        Assert.Equal(1300m, shipment.ExpenseTotal);
+        Assert.Equal(1600m, shipment.CustomerChargeTotal);
+        Assert.Equal(300m, shipment.LogisticsProfitTotal);
     }
 
     [Fact]
-    public async Task LoweringExpenseBelowPaidAmount_CreatesSupplierPrepayment()
+    public async Task LogisticsPayable_DoesNotCreateProductSupplierPrepayment()
     {
         await using var db = TestDbFactory.Create();
-        var shipment = new Shipment { No = "SHP-4", Currency = "USD", Status = "confirmed" };
-        db.Shipments.Add(shipment);
+        var shipment = new Shipment { No = "SHP-4", Currency = "RMB", Status = "confirmed" };
+        var provider = new LogisticsProvider { Code = "LP-3", Name = "物流公司", Status = "active" };
+        db.AddRange(shipment, provider);
         await db.SaveChangesAsync();
         var expense = new ShipmentExpense
         {
@@ -108,31 +120,21 @@ public class ShipmentFinanceServicesTests
             ExpenseCode = "OCEAN_FREIGHT",
             ExpenseName = "海运费",
             NormalizedExpenseName = "海运费",
-            SupplierId = 1,
-            Amount = 1000m,
-            Currency = "USD"
+            ServiceType = "ocean_freight",
+            LogisticsProviderId = provider.Id,
+            ProviderCost = 1000m,
+            CustomerCharge = 1200m,
+            Currency = "RMB"
         };
         db.ShipmentExpenses.Add(expense);
         await db.SaveChangesAsync();
 
-        var expenseService = new ShipmentExpenseService(db);
-        var prepaymentService = new SupplierPrepaymentService(db);
-        var syncService = new ShipmentFinanceSyncService(db, expenseService, prepaymentService);
+        var syncService = new ShipmentFinanceSyncService(db, new ShipmentExpenseService(db), new SupplierPrepaymentService(db));
         await syncService.SyncAsync(shipment.Id);
 
         var payable = db.FinanceRecords.Single(x => x.ShipmentExpenseId == expense.Id);
-        payable.PaidAmount = 800m;
-        FinanceBalanceService.RefreshStatus(payable);
-        expense.Amount = 700m;
-        await db.SaveChangesAsync();
-
-        await syncService.SyncAsync(shipment.Id);
-
-        Assert.Equal(700m, payable.Amount);
-        Assert.Equal(100m, payable.OverpaymentTransferredAmount);
-        var prepayment = db.SupplierPrepayments.Single(x => x.SourceFinanceRecordId == payable.Id);
-        Assert.Equal(100m, prepayment.OriginalAmount);
-        Assert.Equal(100m, prepayment.AvailableAmount);
-        Assert.Equal(0m, FinanceBalanceService.Outstanding(payable));
+        Assert.Equal(provider.Id, payable.LogisticsProviderId);
+        Assert.Null(payable.SupplierId);
+        Assert.Empty(db.SupplierPrepayments);
     }
 }
