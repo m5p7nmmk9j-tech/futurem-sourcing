@@ -43,11 +43,14 @@ builder.Services.AddScoped<DeliveryNoticeSchemaUpgradeService>();
 builder.Services.AddScoped<QcConfirmationSchemaUpgradeService>();
 builder.Services.AddScoped<InventorySchemaUpgradeService>();
 builder.Services.AddScoped<ContainerReservationSchemaUpgradeService>();
+builder.Services.AddScoped<ContainerConfirmationSchemaUpgradeService>();
 builder.Services.AddScoped<DeliveryNoticeService>();
 builder.Services.AddScoped<QcConfirmationService>();
 builder.Services.AddScoped<SummaryReservationService>();
 builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<ContainerReservationService>();
+builder.Services.AddScoped<ContainerConfirmationService>();
+builder.Services.AddScoped<FinanceDocumentService>();
 builder.Services.AddScoped<ShipmentMeasurementService>();
 builder.Services.AddScoped<ShipmentExpenseService>();
 builder.Services.AddScoped<SupplierPrepaymentService>();
@@ -114,6 +117,8 @@ using (var scope = app.Services.CreateScope())
     await inventoryUpgrade.UpgradeAsync();
     var containerReservationUpgrade = scope.ServiceProvider.GetRequiredService<ContainerReservationSchemaUpgradeService>();
     await containerReservationUpgrade.UpgradeAsync();
+    var containerConfirmationUpgrade = scope.ServiceProvider.GetRequiredService<ContainerConfirmationSchemaUpgradeService>();
+    await containerConfirmationUpgrade.UpgradeAsync();
 }
 
 app.UseMiddleware<BusinessRuleExceptionMiddleware>();
