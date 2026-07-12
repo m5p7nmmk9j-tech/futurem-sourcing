@@ -3,17 +3,23 @@ import MainLayout from './layouts/MainLayout.vue'
 import Dashboard from './views/Dashboard.vue'
 import Customers from './views/Customers.vue'
 import Suppliers from './views/Suppliers.vue'
-import Products from './views/Products.vue'
-import Markets from './views/Markets.vue'
+import LogisticsProviders from './views/LogisticsProviders.vue'
+import CustomerHistoryProducts from './views/CustomerHistoryProducts.vue'
+import CustomerImporterProfiles from './views/CustomerImporterProfiles.vue'
+import LabelMarkTemplates from './views/LabelMarkTemplates.vue'
 import Rfqs from './views/Rfqs.vue'
 import CustomerOrders from './views/CustomerOrders.vue'
 import PurchaseOrders from './views/PurchaseOrders.vue'
 import SummaryOrders from './views/SummaryOrders.vue'
+import DeliveryNotices from './views/DeliveryNotices.vue'
 import ReceivingOrders from './views/ReceivingOrders.vue'
 import QcOrders from './views/QcOrders.vue'
+import Warehouses from './views/Warehouses.vue'
+import Inventory from './views/Inventory.vue'
 import ContainerLoads from './views/ContainerLoads.vue'
 import Shipments from './views/Shipments.vue'
-import FinanceRecords from './views/FinanceRecords.vue'
+import FinanceRecords from './views/FinanceRecordsUnified.vue'
+import FinancialAdjustments from './views/FinancialAdjustments.vue'
 import BankAccounts from './views/BankAccounts.vue'
 import BiReports from './views/BiReports.vue'
 import Notifications from './views/Notifications.vue'
@@ -36,17 +42,24 @@ const router = createRouter({
         { path: '', component: Dashboard },
         { path: 'customers', component: Customers },
         { path: 'suppliers', component: Suppliers },
-        { path: 'products', component: Products },
-        { path: 'markets', component: Markets },
+        { path: 'logistics-providers', component: LogisticsProviders },
+        { path: 'products', redirect: '/customer-history-products' },
+        { path: 'customer-history-products', component: CustomerHistoryProducts },
+        { path: 'customer-importers', component: CustomerImporterProfiles },
+        { path: 'label-mark-templates', component: LabelMarkTemplates },
         { path: 'rfqs', component: Rfqs },
         { path: 'customer-orders', component: CustomerOrders },
         { path: 'purchase-orders', component: PurchaseOrders },
         { path: 'so-orders', component: SummaryOrders },
+        { path: 'delivery-notices', component: DeliveryNotices },
         { path: 'receiving-orders', component: ReceivingOrders },
         { path: 'qc-orders', component: QcOrders },
+        { path: 'warehouses', component: Warehouses },
+        { path: 'inventory', component: Inventory },
         { path: 'container-loads', component: ContainerLoads },
         { path: 'shipments', component: Shipments },
         { path: 'finance-records', component: FinanceRecords },
+        { path: 'financial-adjustments', component: FinancialAdjustments },
         { path: 'bank-accounts', component: BankAccounts },
         { path: 'bi-reports', component: BiReports },
         { path: 'message-center', component: Notifications },

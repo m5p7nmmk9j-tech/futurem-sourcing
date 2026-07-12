@@ -21,9 +21,33 @@ jobs:
       - name: Restore API
         run: dotnet restore api/Futurem.Sourcing.Api/Futurem.Sourcing.Api.csproj
       - name: Build API
-        run: dotnet build api/Futurem.Sourcing.Api/Futurem.Sourcing.Api.csproj -c Release --no-restore
+        shell: bash
+        run: |
+          set +e
+          dotnet build api/Futurem.Sourcing.Api/Futurem.Sourcing.Api.csproj -c Release --no-restore 2>&1 | tee api-build.log
+          status=${PIPESTATUS[0]}
+          exit $status
+      - name: Upload API build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-build-log
+          path: api-build.log
+          retention-days: 1
       - name: Test API
-        run: dotnet test api/Futurem.Sourcing.Api.Tests/Futurem.Sourcing.Api.Tests.csproj -c Release
+        shell: bash
+        run: |
+          set +e
+          dotnet test api/Futurem.Sourcing.Api.Tests/Futurem.Sourcing.Api.Tests.csproj -c Release 2>&1 | tee api-test.log
+          status=${PIPESTATUS[0]}
+          exit $status
+      - name: Upload API test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-log
+          path: api-test.log
+          retention-days: 1
 
   web-build:
     name: Web Build and Test
@@ -45,7 +69,19 @@ jobs:
         run: npm test
       - name: Build Web
         working-directory: web
-        run: npm run build
+        shell: bash
+        run: |
+          set +e
+          npm run build 2>&1 | tee web-build.log
+          status=${PIPESTATUS[0]}
+          exit $status
+      - name: Upload Web build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build-log
+          path: web/web-build.log
+          retention-days: 1
 
   docker-build:
     name: Docker Compose Runtime Test
@@ -57,14 +93,15 @@ jobs:
         run: docker compose up -d --build
       - name: Wait for API
         run: |
-          for i in $(seq 1 60); do
+          for i in $(seq 1 20); do
             if curl -fsS http://localhost:8080/ > /tmp/api-health.json; then
               cat /tmp/api-health.json
               exit 0
             fi
             sleep 3
           done
-          docker compose logs api mysql
+          docker compose logs --no-color api mysql > docker-runtime.log
+          cat docker-runtime.log
           exit 1
       - name: Check Web
         run: curl -fsSI http://localhost:3000/
@@ -74,15 +111,48 @@ jobs:
             SHOW TABLES LIKE 'shipment_expenses';
             SHOW TABLES LIKE 'supplier_prepayments';
             SHOW TABLES LIKE 'supplier_prepayment_usages';
+            SHOW TABLES LIKE 'warehouses';
+            SHOW TABLES LIKE 'warehouse_locations';
+            SHOW TABLES LIKE 'inventory_lots';
+            SHOW TABLES LIKE 'inventory_transactions';
+            SHOW TABLES LIKE 'inventory_reservations';
+            SHOW TABLES LIKE 'container_load_sources';
+            SHOW TABLES LIKE 'finance_record_lines';
+            SHOW TABLES LIKE 'logistics_providers';
+            SHOW COLUMNS FROM container_loads LIKE 'customer_id';
+            SHOW COLUMNS FROM container_loads LIKE 'warehouse_id';
+            SHOW COLUMNS FROM container_loads LIKE 'inventory_lock_expires_at';
+            SHOW COLUMNS FROM shipments LIKE 'customer_id';
+            SHOW COLUMNS FROM shipments LIKE 'warehouse_id';
+            SHOW COLUMNS FROM shipments LIKE 'container_no';
             SHOW COLUMNS FROM shipments LIKE 'expense_total';
+            SHOW COLUMNS FROM shipments LIKE 'customer_charge_total';
+            SHOW COLUMNS FROM shipments LIKE 'logistics_profit_total';
+            SHOW COLUMNS FROM shipment_expenses LIKE 'logistics_provider_id';
+            SHOW COLUMNS FROM shipment_expenses LIKE 'provider_cost';
+            SHOW COLUMNS FROM shipment_expenses LIKE 'customer_charge';
+            SHOW COLUMNS FROM shipment_expenses LIKE 'profit_amount';
             SHOW COLUMNS FROM finance_records LIKE 'shipment_expense_id';
+            SHOW COLUMNS FROM finance_records LIKE 'logistics_provider_id';
+            SHOW COLUMNS FROM finance_records LIKE 'counterparty_type';
+            SHOW INDEX FROM shipments WHERE Key_name = 'ux_shipment_container_load';
           "
       - name: Show service status
         if: always()
         run: docker compose ps
+      - name: Save docker logs
+        if: always()
+        run: docker compose logs --no-color > docker-runtime.log 2>&1 || true
+      - name: Upload docker logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-runtime-log
+          path: docker-runtime.log
+          retention-days: 1
       - name: Show logs on failure
         if: failure()
-        run: docker compose logs --tail=300
+        run: tail -n 500 docker-runtime.log
       - name: Stop services
         if: always()
         run: docker compose down -v

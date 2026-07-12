@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Futurem.Sourcing.Api.Entities;
 
 public class AuditLog : BaseEntity
@@ -13,5 +15,14 @@ public class AuditLog : BaseEntity
     public string UserAgent { get; set; } = string.Empty;
     public string BeforeJson { get; set; } = string.Empty;
     public string AfterJson { get; set; } = string.Empty;
+    public string? Reason { get; set; }
+
+    [MaxLength(120)]
+    public string? CorrelationId { get; set; }
+
+    [MaxLength(80)]
+    public string? SourceDocumentType { get; set; }
+
+    public long? SourceDocumentId { get; set; }
     public string Result { get; set; } = "success";
 }

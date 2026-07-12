@@ -7,6 +7,11 @@ public class Shipment : BaseEntity
     public string No { get; set; } = string.Empty;
     public long? ContainerLoadId { get; set; }
     public long? SummaryOrderId { get; set; }
+    public long? CustomerId { get; set; }
+    public long? WarehouseId { get; set; }
+    public string? ContainerType { get; set; }
+    public string? ContainerNo { get; set; }
+    public string? SealNo { get; set; }
     public string ShipmentMode { get; set; } = "SEA";
     public string? Carrier { get; set; }
     public string? VesselVoyage { get; set; }
@@ -15,6 +20,7 @@ public class Shipment : BaseEntity
     public string? DestinationPort { get; set; }
     public DateTime? Etd { get; set; }
     public DateTime? Eta { get; set; }
+    public DateTime? ActualDepartureAt { get; set; }
     public string Status { get; set; } = "draft";
     public string Currency { get; set; } = "RMB";
 
@@ -38,6 +44,12 @@ public class Shipment : BaseEntity
 
     [Column(TypeName = "decimal(18,2)")]
     public decimal ExpenseTotal { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal CustomerChargeTotal { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal LogisticsProfitTotal { get; set; }
 
     public string FinanceSyncStatus { get; set; } = "not_synced";
     public string? FinanceSyncMessage { get; set; }

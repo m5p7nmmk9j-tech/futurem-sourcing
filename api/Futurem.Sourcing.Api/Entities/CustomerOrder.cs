@@ -12,4 +12,11 @@ public class CustomerOrder : BaseEntity
     public string Status { get; set; } = "draft";
     public string? DeliveryTerms { get; set; }
     public string? PaymentTerms { get; set; }
+    public long? ImporterProfileId { get; set; }
+    public long? LabelTemplateId { get; set; }
+    public long? MarkTemplateId { get; set; }
+    public string ImporterSnapshotJson { get; set; } = "{}";
+    public string LabelTemplateSnapshotJson { get; set; } = "{}";
+    public string MarkTemplateSnapshotJson { get; set; } = "{}";
+    public DateTime? ConfirmedAt { get; set; }
 }

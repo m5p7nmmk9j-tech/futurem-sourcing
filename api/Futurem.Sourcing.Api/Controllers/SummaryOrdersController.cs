@@ -60,43 +60,13 @@ public class SummaryOrdersController : ControllerBase
     }
 
     [HttpPost("generate-from-pos")]
-    public async Task<ActionResult<SummaryOrder>> GenerateFromPurchaseOrders(GenerateFromPoRequest request)
+    public ActionResult GenerateFromPurchaseOrders(GenerateFromPoRequest request)
     {
-        if (request.PurchaseOrderIds == null || request.PurchaseOrderIds.Count == 0) return BadRequest("PurchaseOrderIds required");
-        var poIds = request.PurchaseOrderIds.Distinct().ToList();
-        var pos = await _db.PurchaseOrders.Where(x => poIds.Contains(x.Id)).ToListAsync();
-        if (pos.Count == 0) return NotFound();
-
-        var customerId = request.CustomerId ?? pos.FirstOrDefault(x => x.CustomerId.HasValue)?.CustomerId;
-        if (!customerId.HasValue) return BadRequest("CustomerId required");
-        var so = new SummaryOrder
+        return StatusCode(StatusCodes.Status410Gone, new
         {
-            No = NumberService.NewNo("SO"),
-            BuyingTripId = pos.FirstOrDefault()?.BuyingTripId,
-            CustomerId = customerId.Value,
-            OrderDate = DateTime.Today,
-            Currency = string.IsNullOrWhiteSpace(request.Currency) ? "RMB" : request.Currency!,
-            Status = "draft",
-            Remark = $"由 PO 汇总生成: {string.Join(", ", pos.Select(x => x.No))}",
-            CreatedAt = DateTime.Now
-        };
-        _db.SummaryOrders.Add(so);
-        foreach (var po in pos)
-        {
-            po.Status = "summarized";
-            po.UpdatedAt = DateTime.Now;
-        }
-        await _db.SaveChangesAsync();
-
-        foreach (var po in pos) await DocumentLineCopyService.CopyAsync(_db, "PO", po.Id, "SO", so.Id);
-        await _db.SaveChangesAsync();
-
-        var lines = await _db.DocumentLines.Where(x => x.DocumentType == "SO" && x.DocumentId == so.Id).ToListAsync();
-        so.GoodsAmount = lines.Sum(x => x.Amount);
-        so.ReceivableAmount = so.GoodsAmount + so.CommissionFee + so.WarehouseFee + so.LoadingFee + so.LogisticsFee + so.OtherFee;
-        so.UpdatedAt = DateTime.Now;
-        await _db.SaveChangesAsync();
-        return so;
+            code = "LEGACY_SUMMARY_GENERATION_REMOVED",
+            message = "旧版整张 PO 复制汇总已停用，请在客户汇总单中按 PO 明细和整箱数量加入商品。"
+        });
     }
 
     [HttpPost("{id:long}/copy")]

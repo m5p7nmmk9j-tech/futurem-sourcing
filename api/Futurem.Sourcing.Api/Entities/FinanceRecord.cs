@@ -10,6 +10,8 @@ public class FinanceRecord : BaseEntity
     public long TargetId { get; set; }
     public long? CustomerId { get; set; }
     public long? SupplierId { get; set; }
+    public long? LogisticsProviderId { get; set; }
+    public string CounterpartyType { get; set; } = string.Empty;
     public string Currency { get; set; } = "RMB";
 
     [Column(TypeName = "decimal(18,2)")]
@@ -25,6 +27,8 @@ public class FinanceRecord : BaseEntity
     public decimal OverpaymentTransferredAmount { get; set; }
 
     public long? ShipmentExpenseId { get; set; }
+    public long? QcOrderId { get; set; }
+    public long? QcOrderLineId { get; set; }
     public string? SourceKey { get; set; }
     public DateTime? RecordDate { get; set; }
     public string Status { get; set; } = "pending";

@@ -12,7 +12,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "FUTUREM Enterprise API", Version = "v1.1.0" });
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "FUTUREM Enterprise API", Version = "v2.0.0" });
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -35,10 +35,34 @@ builder.Services.AddSwaggerGen(options =>
 });
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<DatabaseUpgradeService>();
+builder.Services.AddScoped<AuditSchemaUpgradeService>();
+builder.Services.AddScoped<OrderProductSchemaUpgradeService>();
+builder.Services.AddScoped<OrderProductIndexUpgradeService>();
+builder.Services.AddScoped<SummaryReservationSchemaUpgradeService>();
+builder.Services.AddScoped<DeliveryNoticeSchemaUpgradeService>();
+builder.Services.AddScoped<QcConfirmationSchemaUpgradeService>();
+builder.Services.AddScoped<InventorySchemaUpgradeService>();
+builder.Services.AddScoped<ContainerReservationSchemaUpgradeService>();
+builder.Services.AddScoped<ContainerConfirmationSchemaUpgradeService>();
+builder.Services.AddScoped<LogisticsProviderSchemaUpgradeService>();
+builder.Services.AddScoped<FinancialAdjustmentSchemaUpgradeService>();
+builder.Services.AddScoped<DeliveryNoticeService>();
+builder.Services.AddScoped<QcConfirmationService>();
+builder.Services.AddScoped<SummaryReservationService>();
+builder.Services.AddScoped<InventoryService>();
+builder.Services.AddScoped<ContainerReservationService>();
+builder.Services.AddScoped<ContainerConfirmationService>();
+builder.Services.AddScoped<FinanceDocumentService>();
 builder.Services.AddScoped<ShipmentMeasurementService>();
 builder.Services.AddScoped<ShipmentExpenseService>();
+builder.Services.AddScoped<ShipmentDepartureService>();
+builder.Services.AddScoped<FifoSettlementService>();
+builder.Services.AddScoped<FinancialAdjustmentService>();
 builder.Services.AddScoped<SupplierPrepaymentService>();
 builder.Services.AddScoped<ShipmentFinanceSyncService>();
+builder.Services.AddScoped<AuditTrailService>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddHostedService<ContainerReservationExpiryWorker>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? builder.Configuration.GetConnectionString("Default")
@@ -80,10 +104,21 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var upgrade = scope.ServiceProvider.GetRequiredService<DatabaseUpgradeService>();
-    await upgrade.UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<DatabaseUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<AuditSchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<OrderProductSchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<OrderProductIndexUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<SummaryReservationSchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<DeliveryNoticeSchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<QcConfirmationSchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<InventorySchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<ContainerReservationSchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<ContainerConfirmationSchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<LogisticsProviderSchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<FinancialAdjustmentSchemaUpgradeService>().UpgradeAsync();
 }
 
+app.UseMiddleware<BusinessRuleExceptionMiddleware>();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseCors("DevCors");
@@ -95,7 +130,7 @@ app.MapGet("/", () => Results.Ok(new
 {
     name = "FUTUREM Enterprise Sourcing API",
     status = "running",
-    version = "1.1.0"
+    version = "2.0.0"
 }));
 
 app.Run();

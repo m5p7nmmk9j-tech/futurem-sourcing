@@ -14,13 +14,33 @@ public class FinanceRecordsController : ControllerBase
     public FinanceRecordsController(AppDbContext db) { _db = db; }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<FinanceRecord>>> List([FromQuery] string? recordType, [FromQuery] string? targetType, [FromQuery] long? customerId, [FromQuery] long? supplierId, [FromQuery] string? status)
+    public async Task<ActionResult<IEnumerable<FinanceRecord>>> List(
+        [FromQuery] string? recordType,
+        [FromQuery] string? targetType,
+        [FromQuery] long? customerId,
+        [FromQuery] long? supplierId,
+        [FromQuery] string? status)
     {
         var query = _db.FinanceRecords.AsQueryable();
         if (!string.IsNullOrWhiteSpace(recordType)) query = query.Where(x => x.RecordType == recordType);
         if (!string.IsNullOrWhiteSpace(targetType)) query = query.Where(x => x.TargetType == targetType);
         if (customerId.HasValue) query = query.Where(x => x.CustomerId == customerId.Value);
         if (supplierId.HasValue) query = query.Where(x => x.SupplierId == supplierId.Value);
+        if (!string.IsNullOrWhiteSpace(status)) query = query.Where(x => x.Status == status);
+        return await query.OrderByDescending(x => x.Id).Take(300).ToListAsync();
+    }
+
+    [HttpGet("financial-adjustments")]
+    public async Task<ActionResult<IEnumerable<FinancialAdjustment>>> FinancialAdjustments(
+        [FromQuery] long? financeRecordId,
+        [FromQuery] long? qcOrderId,
+        [FromQuery] string? adjustmentType,
+        [FromQuery] string? status)
+    {
+        var query = _db.FinancialAdjustments.AsQueryable();
+        if (financeRecordId.HasValue) query = query.Where(x => x.FinanceRecordId == financeRecordId.Value);
+        if (qcOrderId.HasValue) query = query.Where(x => x.QcOrderId == qcOrderId.Value);
+        if (!string.IsNullOrWhiteSpace(adjustmentType)) query = query.Where(x => x.AdjustmentType == adjustmentType);
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(x => x.Status == status);
         return await query.OrderByDescending(x => x.Id).Take(300).ToListAsync();
     }
@@ -56,7 +76,11 @@ public class FinanceRecordsController : ControllerBase
         var records = await query.ToListAsync();
 
         var soIncome = records.Where(x => x.RecordType == "receivable" && x.TargetType == "SO").Sum(x => x.Amount);
-        var poCost = records.Where(x => x.RecordType == "payable" && x.TargetType == "PO").Sum(x => x.Amount);
+        var supplierGoodsCost = records
+            .Where(x => x.RecordType == "payable" && x.TargetType.StartsWith("QC_ACCEPTED"))
+            .Sum(x => x.Amount);
+        var legacyPoCost = records.Where(x => x.RecordType == "payable" && x.TargetType == "PO").Sum(x => x.Amount);
+        var poCost = supplierGoodsCost + legacyPoCost;
         var shipmentExpense = records.Where(x => x.RecordType == "payable" && x.TargetType == "SHIPMENT_EXPENSE").Sum(x => x.Amount);
         var expense = records.Where(x => x.RecordType == "expense").Sum(x => x.Amount);
         var otherIncome = records.Where(x => x.RecordType == "income").Sum(x => x.Amount);
@@ -68,6 +92,8 @@ public class FinanceRecordsController : ControllerBase
         {
             soIncome,
             poCost,
+            supplierGoodsCost,
+            legacyPoCost,
             shipmentExpense,
             expense,
             otherIncome,
@@ -81,7 +107,10 @@ public class FinanceRecordsController : ControllerBase
     }
 
     [HttpGet("aging")]
-    public async Task<ActionResult<object>> Aging([FromQuery] string recordType = "receivable", [FromQuery] long? customerId = null, [FromQuery] long? supplierId = null)
+    public async Task<ActionResult<object>> Aging(
+        [FromQuery] string recordType = "receivable",
+        [FromQuery] long? customerId = null,
+        [FromQuery] long? supplierId = null)
     {
         var today = DateTime.Today;
         var query = _db.FinanceRecords.Where(x => x.RecordType == recordType && x.Status != "done");
@@ -164,6 +193,7 @@ public class FinanceRecordsController : ControllerBase
     {
         input.Id = 0;
         input.No = string.IsNullOrWhiteSpace(input.No) ? NumberService.NewNo("FIN") : input.No;
+        input.Currency = RmbMoneyService.Currency;
         input.CreatedAt = DateTime.Now;
         FinanceBalanceService.RefreshStatus(input);
         _db.FinanceRecords.Add(input);
@@ -176,15 +206,15 @@ public class FinanceRecordsController : ControllerBase
     {
         var entity = await _db.FinanceRecords.FindAsync(id);
         if (entity == null) return NotFound();
-        if (entity.TargetType == "SHIPMENT_EXPENSE")
-            return BadRequest(new { message = "出运费用应付必须在出运单中修改" });
+        if (IsSystemGenerated(entity))
+            throw new BusinessRuleException("SYSTEM_FINANCE_RECORD_LOCKED", "自动生成的应收应付必须在来源业务单据中调整");
 
         entity.RecordType = input.RecordType;
         entity.TargetType = input.TargetType;
         entity.TargetId = input.TargetId;
         entity.CustomerId = input.CustomerId;
         entity.SupplierId = input.SupplierId;
-        entity.Currency = input.Currency;
+        entity.Currency = RmbMoneyService.Currency;
         entity.Amount = input.Amount;
         entity.PaidAmount = input.PaidAmount;
         entity.RecordDate = input.RecordDate;
@@ -200,11 +230,14 @@ public class FinanceRecordsController : ControllerBase
     {
         var entity = await _db.FinanceRecords.FindAsync(id);
         if (entity == null) return NotFound();
-        if (entity.TargetType == "SHIPMENT_EXPENSE")
-            return BadRequest(new { message = "出运费用应付不能在财务模块直接删除" });
+        if (IsSystemGenerated(entity))
+            throw new BusinessRuleException("SYSTEM_FINANCE_RECORD_LOCKED", "自动生成的应收应付不能在财务模块直接删除");
         entity.IsDeleted = true;
         entity.UpdatedAt = DateTime.Now;
         await _db.SaveChangesAsync();
         return Ok(new { ok = true });
     }
+
+    private static bool IsSystemGenerated(FinanceRecord record)
+        => record.TargetType == "SHIPMENT_EXPENSE" || record.TargetType.StartsWith("QC_ACCEPTED");
 }
