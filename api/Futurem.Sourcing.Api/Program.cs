@@ -45,6 +45,7 @@ builder.Services.AddScoped<InventorySchemaUpgradeService>();
 builder.Services.AddScoped<ContainerReservationSchemaUpgradeService>();
 builder.Services.AddScoped<ContainerConfirmationSchemaUpgradeService>();
 builder.Services.AddScoped<LogisticsProviderSchemaUpgradeService>();
+builder.Services.AddScoped<FinancialAdjustmentSchemaUpgradeService>();
 builder.Services.AddScoped<DeliveryNoticeService>();
 builder.Services.AddScoped<QcConfirmationService>();
 builder.Services.AddScoped<SummaryReservationService>();
@@ -56,6 +57,7 @@ builder.Services.AddScoped<ShipmentMeasurementService>();
 builder.Services.AddScoped<ShipmentExpenseService>();
 builder.Services.AddScoped<ShipmentDepartureService>();
 builder.Services.AddScoped<FifoSettlementService>();
+builder.Services.AddScoped<FinancialAdjustmentService>();
 builder.Services.AddScoped<SupplierPrepaymentService>();
 builder.Services.AddScoped<ShipmentFinanceSyncService>();
 builder.Services.AddScoped<AuditTrailService>();
@@ -113,6 +115,7 @@ using (var scope = app.Services.CreateScope())
     await scope.ServiceProvider.GetRequiredService<ContainerReservationSchemaUpgradeService>().UpgradeAsync();
     await scope.ServiceProvider.GetRequiredService<ContainerConfirmationSchemaUpgradeService>().UpgradeAsync();
     await scope.ServiceProvider.GetRequiredService<LogisticsProviderSchemaUpgradeService>().UpgradeAsync();
+    await scope.ServiceProvider.GetRequiredService<FinancialAdjustmentSchemaUpgradeService>().UpgradeAsync();
 }
 
 app.UseMiddleware<BusinessRuleExceptionMiddleware>();
