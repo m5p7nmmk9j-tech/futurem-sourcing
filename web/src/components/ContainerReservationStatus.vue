@@ -1,7 +1,15 @@
 <template>
   <div class="reservation-status">
     <el-alert
-      v-if="state === 'active'"
+      v-if="confirmed"
+      type="success"
+      show-icon
+      :closable="false"
+      title="实际装柜已经确认"
+      description="库存已按实际装柜数量扣减，商品货款应收和对应出运单草稿已经生成。"
+    />
+    <el-alert
+      v-else-if="state === 'active'"
       type="success"
       show-icon
       :closable="false"
@@ -26,8 +34,8 @@
     />
 
     <div class="status-actions">
-      <el-button v-if="state === 'active'" type="warning" @click="$emit('release')">释放库存锁定</el-button>
-      <el-button v-if="state === 'expired' || status === 'lock_expired'" type="primary" @click="$emit('relock')">重新锁定库存</el-button>
+      <el-button v-if="!confirmed && state === 'active'" type="warning" @click="$emit('release')">释放库存锁定</el-button>
+      <el-button v-if="!confirmed && (state === 'expired' || status === 'lock_expired')" type="primary" @click="$emit('relock')">重新锁定库存</el-button>
     </div>
   </div>
 </template>
@@ -43,7 +51,8 @@ const props = defineProps<{
 defineEmits<{ release: []; relock: [] }>()
 const now = ref(new Date())
 let timer: ReturnType<typeof setInterval> | null = null
-const state = computed(() => reservationState(props.expiresAt, now.value))
+const confirmed = computed(() => ['confirmed', 'shipment_created', 'completed'].includes(props.status || ''))
+const state = computed(() => confirmed.value ? 'unlocked' : reservationState(props.expiresAt, now.value))
 const countdown = computed(() => formatReservationCountdown(props.expiresAt, now.value))
 
 onMounted(() => { timer = setInterval(() => { now.value = new Date() }, 60_000) })
