@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Futurem.Sourcing.Api.Data;
 using Futurem.Sourcing.Api.Entities;
 using Futurem.Sourcing.Api.Services;
@@ -64,11 +65,11 @@ public sealed class LogisticsProvidersController : ControllerBase
         entity.Code = input.Code;
         entity.Name = input.Name;
         entity.ServiceTypesJson = input.ServiceTypesJson;
-        entity.ContactName = input.ContactName;
-        entity.Phone = input.Phone;
-        entity.Email = input.Email;
-        entity.Address = input.Address;
-        entity.TaxId = input.TaxId;
+        entity.ContactName = input.ContactName?.Trim();
+        entity.Phone = input.Phone?.Trim();
+        entity.Email = input.Email?.Trim();
+        entity.Address = input.Address?.Trim();
+        entity.TaxId = input.TaxId?.Trim();
         entity.BankInfoJson = input.BankInfoJson;
         entity.Status = input.Status;
         entity.Remark = input.Remark;
@@ -79,11 +80,21 @@ public sealed class LogisticsProvidersController : ControllerBase
 
     private static void Normalize(LogisticsProvider provider)
     {
-        provider.Code = provider.Code.Trim().ToUpperInvariant();
-        provider.Name = provider.Name.Trim();
+        provider.Code = (provider.Code ?? string.Empty).Trim().ToUpperInvariant();
+        provider.Name = (provider.Name ?? string.Empty).Trim();
         provider.ServiceTypesJson = string.IsNullOrWhiteSpace(provider.ServiceTypesJson) ? "[]" : provider.ServiceTypesJson.Trim();
         provider.Status = string.IsNullOrWhiteSpace(provider.Status) ? "active" : provider.Status.Trim();
         if (string.IsNullOrWhiteSpace(provider.Code) || string.IsNullOrWhiteSpace(provider.Name))
             throw new BusinessRuleException("LOGISTICS_PROVIDER_REQUIRED_FIELDS", "物流服务商编码和名称不能为空");
+        try
+        {
+            using var document = JsonDocument.Parse(provider.ServiceTypesJson);
+            if (document.RootElement.ValueKind != JsonValueKind.Array)
+                throw new JsonException();
+        }
+        catch (JsonException)
+        {
+            throw new BusinessRuleException("LOGISTICS_SERVICE_TYPES_INVALID", "服务类型格式无效");
+        }
     }
 }
