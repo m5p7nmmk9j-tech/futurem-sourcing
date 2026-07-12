@@ -27,7 +27,7 @@ public sealed class FinancialAdjustmentSchemaUpgradeService
         await AddColumnIfMissingAsync("financial_adjustments", "source_id", "ALTER TABLE `financial_adjustments` ADD COLUMN `source_id` BIGINT NULL");
         await AddColumnIfMissingAsync("financial_adjustments", "original_amount", "ALTER TABLE `financial_adjustments` ADD COLUMN `original_amount` DECIMAL(18,2) NOT NULL DEFAULT 0");
         await AddColumnIfMissingAsync("financial_adjustments", "result_amount", "ALTER TABLE `financial_adjustments` ADD COLUMN `result_amount` DECIMAL(18,2) NOT NULL DEFAULT 0");
-        await AddColumnIfMissingAsync("financial_adjustments", "reason", "ALTER TABLE `financial_adjustments` ADD COLUMN `reason` TEXT NOT NULL");
+        await AddColumnIfMissingAsync("financial_adjustments", "reason", "ALTER TABLE `financial_adjustments` ADD COLUMN `reason` TEXT NULL");
         await AddColumnIfMissingAsync("financial_adjustments", "approved_by", "ALTER TABLE `financial_adjustments` ADD COLUMN `approved_by` BIGINT NULL");
         await AddColumnIfMissingAsync("financial_adjustments", "approved_at", "ALTER TABLE `financial_adjustments` ADD COLUMN `approved_at` DATETIME NULL");
         await AddColumnIfMissingAsync("financial_adjustments", "applied_by", "ALTER TABLE `financial_adjustments` ADD COLUMN `applied_by` BIGINT NULL");
@@ -36,6 +36,12 @@ public sealed class FinancialAdjustmentSchemaUpgradeService
         await AddColumnIfMissingAsync("financial_adjustments", "cancelled_at", "ALTER TABLE `financial_adjustments` ADD COLUMN `cancelled_at` DATETIME NULL");
         await AddColumnIfMissingAsync("financial_adjustments", "cancel_reason", "ALTER TABLE `financial_adjustments` ADD COLUMN `cancel_reason` TEXT NULL");
 
+        await _db.Database.ExecuteSqlRawAsync("UPDATE `financial_adjustments` SET `reason` = COALESCE(NULLIF(`reason`, ''), COALESCE(`remark`, '历史调整'))");
+        await _db.Database.ExecuteSqlRawAsync("ALTER TABLE `financial_adjustments` MODIFY COLUMN `status` VARCHAR(40) NOT NULL DEFAULT 'draft'");
+        await _db.Database.ExecuteSqlRawAsync("ALTER TABLE `financial_adjustments` MODIFY COLUMN `adjustment_type` VARCHAR(80) NOT NULL");
+        await _db.Database.ExecuteSqlRawAsync("ALTER TABLE `financial_adjustments` MODIFY COLUMN `source_key` VARCHAR(255) NOT NULL");
+        await _db.Database.ExecuteSqlRawAsync("ALTER TABLE `financial_adjustments` MODIFY COLUMN `source_type` VARCHAR(80) NOT NULL DEFAULT ''");
+        await _db.Database.ExecuteSqlRawAsync("ALTER TABLE `financial_adjustments` MODIFY COLUMN `reason` TEXT NOT NULL");
         await _db.Database.ExecuteSqlRawAsync("ALTER TABLE `financial_adjustments` MODIFY COLUMN `qc_order_id` BIGINT NULL");
         await _db.Database.ExecuteSqlRawAsync("ALTER TABLE `financial_adjustments` MODIFY COLUMN `qc_order_line_id` BIGINT NULL");
         await _db.Database.ExecuteSqlRawAsync("ALTER TABLE `customer_advances` MODIFY COLUMN `source_payment_id` BIGINT NULL");
