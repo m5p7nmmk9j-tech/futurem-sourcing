@@ -10,20 +10,13 @@ namespace Futurem.Sourcing.Api.Controllers;
 [Route("api/shipments/{shipmentId:long}/expenses")]
 public class ShipmentExpensesController : ControllerBase
 {
-    private static readonly string[] SyncableStatuses = ["confirmed", "shipped", "completed"];
-
     private readonly AppDbContext _db;
     private readonly ShipmentExpenseService _expenseService;
-    private readonly ShipmentFinanceSyncService _financeSyncService;
 
-    public ShipmentExpensesController(
-        AppDbContext db,
-        ShipmentExpenseService expenseService,
-        ShipmentFinanceSyncService financeSyncService)
+    public ShipmentExpensesController(AppDbContext db, ShipmentExpenseService expenseService)
     {
         _db = db;
         _expenseService = expenseService;
-        _financeSyncService = financeSyncService;
     }
 
     [HttpGet]
@@ -38,32 +31,48 @@ public class ShipmentExpensesController : ControllerBase
             .OrderBy(x => x.SortNo)
             .ThenBy(x => x.Id)
             .ToListAsync();
-        var financeIds = expenses.Where(x => x.FinanceRecordId.HasValue).Select(x => x.FinanceRecordId!.Value).ToList();
-        var finances = await _db.FinanceRecords.Where(x => financeIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id);
+        var providerIds = expenses.Where(x => x.LogisticsProviderId.HasValue)
+            .Select(x => x.LogisticsProviderId!.Value).Distinct().ToList();
+        var providers = await _db.LogisticsProviders
+            .Where(x => providerIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id);
+        var financeIds = expenses.Where(x => x.FinanceRecordId.HasValue)
+            .Select(x => x.FinanceRecordId!.Value).ToList();
+        var finances = await _db.FinanceRecords
+            .Where(x => financeIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id);
 
-        return expenses.Select(x =>
+        return expenses.Select(expense =>
         {
+            LogisticsProvider? provider = null;
+            if (expense.LogisticsProviderId.HasValue)
+                providers.TryGetValue(expense.LogisticsProviderId.Value, out provider);
             FinanceRecord? finance = null;
-            if (x.FinanceRecordId.HasValue) finances.TryGetValue(x.FinanceRecordId.Value, out finance);
+            if (expense.FinanceRecordId.HasValue)
+                finances.TryGetValue(expense.FinanceRecordId.Value, out finance);
             return (object)new
             {
-                x.Id,
-                x.ShipmentId,
-                x.ExpenseCode,
-                x.ExpenseName,
-                x.IsCustom,
-                x.SupplierId,
-                x.Amount,
-                x.Currency,
-                x.FinanceRecordId,
+                expense.Id,
+                expense.ShipmentId,
+                expense.ExpenseCode,
+                expense.ExpenseName,
+                expense.ServiceType,
+                expense.IsCustom,
+                expense.LogisticsProviderId,
+                logisticsProviderName = provider?.Name,
+                expense.ProviderCost,
+                expense.CustomerCharge,
+                expense.ProfitAmount,
+                amount = expense.ProviderCost,
+                currency = RmbMoneyService.Currency,
+                expense.NeedsCustomerChargeReview,
+                expense.FinanceRecordId,
                 financeNo = finance?.No,
                 paidAmount = finance?.PaidAmount ?? 0m,
-                prepaymentAppliedAmount = finance?.PrepaymentAppliedAmount ?? 0m,
-                overpaymentTransferredAmount = finance?.OverpaymentTransferredAmount ?? 0m,
-                outstandingAmount = finance == null ? x.Amount : FinanceBalanceService.Outstanding(finance),
-                financeStatus = finance?.Status ?? x.FinanceStatus,
-                x.Remark,
-                x.SortNo
+                outstandingAmount = finance == null ? expense.ProviderCost : FinanceBalanceService.Outstanding(finance),
+                financeStatus = finance?.Status ?? expense.FinanceStatus,
+                expense.Remark,
+                expense.SortNo
             };
         }).ToList();
     }
@@ -71,9 +80,9 @@ public class ShipmentExpensesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ShipmentExpense>> Create(long shipmentId, ShipmentExpense input)
     {
-        var shipment = await _db.Shipments.FindAsync(shipmentId);
-        if (shipment == null) return NotFound();
-        if (!input.IsCustom) return BadRequest(new { message = "固定费用由系统自动创建" });
+        var shipment = await RequireEditableShipmentAsync(shipmentId);
+        if (!input.IsCustom)
+            throw new BusinessRuleException("FIXED_LOGISTICS_EXPENSE_SYSTEM_MANAGED", "固定服务费用由系统自动创建");
 
         await using var transaction = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
         try
@@ -86,104 +95,112 @@ public class ShipmentExpensesController : ControllerBase
 
             var deleted = await _db.ShipmentExpenses.IgnoreQueryFilters().FirstOrDefaultAsync(x =>
                 x.ShipmentId == shipmentId && x.ExpenseCode == input.ExpenseCode && x.IsDeleted);
-            if (deleted != null)
+            if (deleted is not null)
             {
                 deleted.IsDeleted = false;
-                deleted.ExpenseName = input.ExpenseName;
-                deleted.NormalizedExpenseName = input.NormalizedExpenseName;
-                deleted.SupplierId = input.SupplierId;
-                deleted.Amount = input.Amount;
-                deleted.Currency = shipment.Currency;
-                deleted.Remark = input.Remark;
+                ApplyEditableValues(deleted, input);
                 deleted.UpdatedAt = DateTime.Now;
                 input = deleted;
             }
             else
             {
-                var nextSort = await _db.ShipmentExpenses.Where(x => x.ShipmentId == shipmentId).MaxAsync(x => (int?)x.SortNo) ?? 40;
+                var nextSort = await _db.ShipmentExpenses
+                    .Where(x => x.ShipmentId == shipmentId)
+                    .MaxAsync(x => (int?)x.SortNo) ?? 60;
                 input.SortNo = nextSort + 10;
                 _db.ShipmentExpenses.Add(input);
             }
 
             await _db.SaveChangesAsync();
             await _expenseService.RecalculateExpenseTotalAsync(shipmentId);
-            if (SyncableStatuses.Contains(shipment.Status)) await _financeSyncService.SyncAsync(shipmentId);
-            if (transaction != null) await transaction.CommitAsync();
+            if (transaction is not null) await transaction.CommitAsync();
             return input;
         }
-        catch (Exception ex)
+        catch
         {
-            if (transaction != null) await transaction.RollbackAsync();
-            return BadRequest(new { message = ex.Message });
+            if (transaction is not null) await transaction.RollbackAsync();
+            throw;
         }
     }
 
     [HttpPut("{expenseId:long}")]
     public async Task<ActionResult<ShipmentExpense>> Update(long shipmentId, long expenseId, ShipmentExpense input)
     {
-        var shipment = await _db.Shipments.FindAsync(shipmentId);
-        if (shipment == null) return NotFound();
-        var entity = await _db.ShipmentExpenses.FirstOrDefaultAsync(x => x.Id == expenseId && x.ShipmentId == shipmentId);
+        var shipment = await RequireEditableShipmentAsync(shipmentId);
+        var entity = await _db.ShipmentExpenses
+            .FirstOrDefaultAsync(x => x.Id == expenseId && x.ShipmentId == shipmentId);
         if (entity == null) return NotFound();
 
         await using var transaction = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
         try
         {
             entity.ExpenseName = entity.IsCustom ? input.ExpenseName : entity.ExpenseName;
-            entity.SupplierId = input.SupplierId;
-            entity.Amount = input.Amount;
-            entity.Currency = shipment.Currency;
+            entity.ServiceType = input.ServiceType;
+            entity.LogisticsProviderId = input.LogisticsProviderId;
+            entity.ProviderCost = input.ProviderCost;
+            entity.CustomerCharge = input.CustomerCharge;
+            entity.Amount = input.ProviderCost;
+            entity.NeedsCustomerChargeReview = false;
             entity.Remark = input.Remark;
             entity.UpdatedAt = DateTime.Now;
             await _expenseService.ValidateAsync(shipment, entity, entity.Id);
             await _db.SaveChangesAsync();
             await _expenseService.RecalculateExpenseTotalAsync(shipmentId);
-            if (SyncableStatuses.Contains(shipment.Status)) await _financeSyncService.SyncAsync(shipmentId);
-            if (transaction != null) await transaction.CommitAsync();
+            if (transaction is not null) await transaction.CommitAsync();
             return entity;
         }
-        catch (Exception ex)
+        catch
         {
-            if (transaction != null) await transaction.RollbackAsync();
-            return BadRequest(new { message = ex.Message });
+            if (transaction is not null) await transaction.RollbackAsync();
+            throw;
         }
     }
 
     [HttpDelete("{expenseId:long}")]
     public async Task<IActionResult> Delete(long shipmentId, long expenseId)
     {
-        var shipment = await _db.Shipments.FindAsync(shipmentId);
-        if (shipment == null) return NotFound();
-        var entity = await _db.ShipmentExpenses.FirstOrDefaultAsync(x => x.Id == expenseId && x.ShipmentId == shipmentId);
+        await RequireEditableShipmentAsync(shipmentId);
+        var entity = await _db.ShipmentExpenses
+            .FirstOrDefaultAsync(x => x.Id == expenseId && x.ShipmentId == shipmentId);
         if (entity == null) return NotFound();
 
-        var finance = entity.FinanceRecordId.HasValue ? await _db.FinanceRecords.FindAsync(entity.FinanceRecordId.Value) : null;
-        if (entity.IsCustom && finance != null && (finance.PaidAmount > 0m || finance.PrepaymentAppliedAmount > 0m))
-            return BadRequest(new { message = "已有付款或预付款抵扣，不能直接删除该费用，请将金额调整为 0" });
+        entity.ProviderCost = 0m;
+        entity.CustomerCharge = 0m;
+        entity.ProfitAmount = 0m;
+        entity.Amount = 0m;
+        entity.LogisticsProviderId = null;
+        entity.SupplierId = null;
+        entity.NeedsCustomerChargeReview = false;
+        entity.UpdatedAt = DateTime.Now;
+        if (entity.IsCustom) entity.IsDeleted = true;
+        await _db.SaveChangesAsync();
+        await _expenseService.RecalculateExpenseTotalAsync(shipmentId);
+        return Ok(new { ok = true });
+    }
 
-        await using var transaction = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
-        try
-        {
-            entity.Amount = 0m;
-            entity.SupplierId = null;
-            entity.UpdatedAt = DateTime.Now;
-            await _db.SaveChangesAsync();
-            if (SyncableStatuses.Contains(shipment.Status)) await _financeSyncService.SyncAsync(shipmentId);
+    private async Task<Shipment> RequireEditableShipmentAsync(long shipmentId)
+    {
+        var shipment = await _db.Shipments.FindAsync(shipmentId)
+            ?? throw new KeyNotFoundException("出运单不存在");
+        if (shipment.Status != "draft")
+            throw new BusinessRuleException("SHIPMENT_EXPENSE_LOCKED", "出运单确认后费用只能通过调整单修改");
+        shipment.Currency = RmbMoneyService.Currency;
+        return shipment;
+    }
 
-            if (entity.IsCustom)
-            {
-                entity.IsDeleted = true;
-                entity.UpdatedAt = DateTime.Now;
-                await _db.SaveChangesAsync();
-            }
-            await _expenseService.RecalculateExpenseTotalAsync(shipmentId);
-            if (transaction != null) await transaction.CommitAsync();
-            return Ok(new { ok = true });
-        }
-        catch (Exception ex)
-        {
-            if (transaction != null) await transaction.RollbackAsync();
-            return BadRequest(new { message = ex.Message });
-        }
+    private static void ApplyEditableValues(ShipmentExpense target, ShipmentExpense source)
+    {
+        target.ExpenseName = source.ExpenseName;
+        target.NormalizedExpenseName = source.NormalizedExpenseName;
+        target.ServiceType = source.ServiceType;
+        target.LogisticsProviderId = source.LogisticsProviderId;
+        target.SupplierId = null;
+        target.ProviderCost = source.ProviderCost;
+        target.CustomerCharge = source.CustomerCharge;
+        target.ProfitAmount = source.ProfitAmount;
+        target.Amount = source.ProviderCost;
+        target.Currency = RmbMoneyService.Currency;
+        target.NeedsCustomerChargeReview = false;
+        target.Remark = source.Remark;
     }
 }
