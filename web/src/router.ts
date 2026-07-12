@@ -19,6 +19,7 @@ import Inventory from './views/Inventory.vue'
 import ContainerLoads from './views/ContainerLoads.vue'
 import Shipments from './views/Shipments.vue'
 import FinanceRecords from './views/FinanceRecordsUnified.vue'
+import FinancialAdjustments from './views/FinancialAdjustments.vue'
 import BankAccounts from './views/BankAccounts.vue'
 import BiReports from './views/BiReports.vue'
 import Notifications from './views/Notifications.vue'
@@ -58,6 +59,7 @@ const router = createRouter({
         { path: 'container-loads', component: ContainerLoads },
         { path: 'shipments', component: Shipments },
         { path: 'finance-records', component: FinanceRecords },
+        { path: 'financial-adjustments', component: FinancialAdjustments },
         { path: 'bank-accounts', component: BankAccounts },
         { path: 'bi-reports', component: BiReports },
         { path: 'message-center', component: Notifications },
