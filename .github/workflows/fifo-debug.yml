@@ -1,0 +1,25 @@
+name: FIFO Debug
+
+on:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  targeted-test:
+    name: FIFO ${{ matrix.test }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test:
+          - CustomerReceipt_AppliesOldestReceivablesFirst
+          - CustomerReceipt_StoresExcessAsAdvanceAndAppliesItToFutureReceivable
+          - SupplierPayment_DoesNotMixProductAndLogisticsCounterparties
+          - LogisticsOverpayment_CreatesIsolatedPrepaymentAndAppliesToFutureLogisticsPayable
+          - ReversePayment_CreatesNegativeAllocationsAndRestoresBalances
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      - run: dotnet test api/Futurem.Sourcing.Api.Tests/Futurem.Sourcing.Api.Tests.csproj -c Release --filter "FullyQualifiedName~${{ matrix.test }}"
