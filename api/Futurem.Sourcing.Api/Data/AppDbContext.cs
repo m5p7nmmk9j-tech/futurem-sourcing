@@ -32,9 +32,11 @@ public class AppDbContext : DbContext
     public DbSet<QcOrder> QcOrders => Set<QcOrder>();
     public DbSet<QcOrderLine> QcOrderLines => Set<QcOrderLine>();
     public DbSet<ContainerLoad> ContainerLoads => Set<ContainerLoad>();
+    public DbSet<ContainerLoadSource> ContainerLoadSources => Set<ContainerLoadSource>();
     public DbSet<Shipment> Shipments => Set<Shipment>();
     public DbSet<ShipmentExpense> ShipmentExpenses => Set<ShipmentExpense>();
     public DbSet<FinanceRecord> FinanceRecords => Set<FinanceRecord>();
+    public DbSet<FinanceRecordLine> FinanceRecordLines => Set<FinanceRecordLine>();
     public DbSet<FinancialAdjustment> FinancialAdjustments => Set<FinancialAdjustment>();
     public DbSet<SupplierPrepayment> SupplierPrepayments => Set<SupplierPrepayment>();
     public DbSet<SupplierPrepaymentUsage> SupplierPrepaymentUsages => Set<SupplierPrepaymentUsage>();
@@ -87,9 +89,11 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<QcOrder>().ToTable("qc_orders");
         modelBuilder.Entity<QcOrderLine>().ToTable("qc_order_lines");
         modelBuilder.Entity<ContainerLoad>().ToTable("container_loads");
+        modelBuilder.Entity<ContainerLoadSource>().ToTable("container_load_sources");
         modelBuilder.Entity<Shipment>().ToTable("shipments");
         modelBuilder.Entity<ShipmentExpense>().ToTable("shipment_expenses");
         modelBuilder.Entity<FinanceRecord>().ToTable("finance_records");
+        modelBuilder.Entity<FinanceRecordLine>().ToTable("finance_record_lines");
         modelBuilder.Entity<FinancialAdjustment>().ToTable("financial_adjustments");
         modelBuilder.Entity<SupplierPrepayment>().ToTable("supplier_prepayments");
         modelBuilder.Entity<SupplierPrepaymentUsage>().ToTable("supplier_prepayment_usages");
@@ -136,6 +140,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<InventoryTransaction>().HasIndex(x => new { x.InventoryLotId, x.CreatedAt });
         modelBuilder.Entity<InventoryReservation>().HasIndex(x => new { x.ContainerLoadId, x.Status });
         modelBuilder.Entity<InventoryReservation>().HasIndex(x => new { x.InventoryLotId, x.Status, x.ExpiresAt });
+        modelBuilder.Entity<ContainerLoadSource>().HasIndex(x => new { x.ContainerLoadId, x.InventoryReservationId }).IsUnique();
+        modelBuilder.Entity<ContainerLoadSource>().HasIndex(x => new { x.ContainerLoadId, x.SummaryOrderId });
+        modelBuilder.Entity<Shipment>().HasIndex(x => x.ContainerLoadId).IsUnique();
         modelBuilder.Entity<ReceivingOrder>().HasIndex(x => x.DeliveryNoticeId);
         modelBuilder.Entity<DocumentLine>().HasIndex(x => x.DeliveryNoticeLineId);
         modelBuilder.Entity<QcOrder>().HasIndex(x => x.ReceivingOrderId).IsUnique();
@@ -143,6 +150,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<QcOrderLine>().HasIndex(x => x.ReceivingOrderId);
         modelBuilder.Entity<FinanceRecord>().HasIndex(x => x.QcOrderLineId);
         modelBuilder.Entity<FinanceRecord>().HasIndex(x => x.SourceKey);
+        modelBuilder.Entity<FinanceRecordLine>().HasIndex(x => x.SourceKey).IsUnique();
+        modelBuilder.Entity<FinanceRecordLine>().HasIndex(x => new { x.FinanceRecordId, x.CreatedAt });
         modelBuilder.Entity<FinancialAdjustment>().HasIndex(x => x.SourceKey).IsUnique();
         modelBuilder.Entity<FinancialAdjustment>().HasIndex(x => x.FinanceRecordId);
         modelBuilder.Entity<ShipmentExpense>().HasIndex(x => new { x.ShipmentId, x.ExpenseCode }).IsUnique();
