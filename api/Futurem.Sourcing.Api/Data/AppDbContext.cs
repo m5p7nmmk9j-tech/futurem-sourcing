@@ -10,6 +10,7 @@ public class AppDbContext : DbContext
 
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
+    public DbSet<LogisticsProvider> LogisticsProviders => Set<LogisticsProvider>();
     public DbSet<Market> Markets => Set<Market>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<OrderProduct> OrderProducts => Set<OrderProduct>();
@@ -67,6 +68,7 @@ public class AppDbContext : DbContext
         base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<Customer>().ToTable("customers");
         modelBuilder.Entity<Supplier>().ToTable("suppliers");
+        modelBuilder.Entity<LogisticsProvider>().ToTable("logistics_providers");
         modelBuilder.Entity<Market>().ToTable("markets");
         modelBuilder.Entity<Product>().ToTable("products");
         modelBuilder.Entity<OrderProduct>().ToTable("order_products");
@@ -121,6 +123,8 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Product>().HasIndex(x => x.Sku).IsUnique();
         modelBuilder.Entity<Product>().HasIndex(x => x.Barcode).IsUnique();
+        modelBuilder.Entity<LogisticsProvider>().HasIndex(x => x.Code).IsUnique();
+        modelBuilder.Entity<LogisticsProvider>().HasIndex(x => new { x.Status, x.Name });
         modelBuilder.Entity<OrderProduct>().HasIndex(x => new { x.SourceCustomerOrderId, x.CustomerBarcode }).IsUnique();
         modelBuilder.Entity<OrderProduct>().HasIndex(x => new { x.SourceCustomerOrderId, x.Status });
         modelBuilder.Entity<OrderProductImage>().HasIndex(x => new { x.OrderProductId, x.ImageType });
@@ -150,12 +154,14 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<QcOrderLine>().HasIndex(x => x.ReceivingOrderId);
         modelBuilder.Entity<FinanceRecord>().HasIndex(x => x.QcOrderLineId);
         modelBuilder.Entity<FinanceRecord>().HasIndex(x => x.SourceKey);
+        modelBuilder.Entity<FinanceRecord>().HasIndex(x => new { x.CounterpartyType, x.LogisticsProviderId, x.Status });
         modelBuilder.Entity<FinanceRecordLine>().HasIndex(x => x.SourceKey).IsUnique();
         modelBuilder.Entity<FinanceRecordLine>().HasIndex(x => new { x.FinanceRecordId, x.CreatedAt });
         modelBuilder.Entity<FinancialAdjustment>().HasIndex(x => x.SourceKey).IsUnique();
         modelBuilder.Entity<FinancialAdjustment>().HasIndex(x => x.FinanceRecordId);
         modelBuilder.Entity<ShipmentExpense>().HasIndex(x => new { x.ShipmentId, x.ExpenseCode }).IsUnique();
         modelBuilder.Entity<ShipmentExpense>().HasIndex(x => new { x.ShipmentId, x.NormalizedExpenseName }).IsUnique();
+        modelBuilder.Entity<ShipmentExpense>().HasIndex(x => new { x.LogisticsProviderId, x.ServiceType });
         modelBuilder.Entity<FinanceRecord>().HasIndex(x => x.ShipmentExpenseId).IsUnique();
         modelBuilder.Entity<SupplierPrepayment>().HasIndex(x => new { x.SupplierId, x.Currency, x.Status });
         modelBuilder.Entity<SupplierPrepaymentUsage>().HasIndex(x => new { x.SupplierPrepaymentId, x.FinanceRecordId });
