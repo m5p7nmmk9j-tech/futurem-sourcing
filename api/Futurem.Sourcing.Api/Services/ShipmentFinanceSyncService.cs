@@ -24,10 +24,10 @@ public class ShipmentFinanceSyncService
 
     public async Task SyncAsync(long shipmentId)
     {
-        var shipment = await _db.Shipments.FindAsync(shipmentId);
-        if (shipment == null) throw new KeyNotFoundException("Shipment not found");
+        var shipment = await _db.Shipments.FindAsync(shipmentId)
+            ?? throw new KeyNotFoundException("Shipment not found");
         if (!SyncableStatuses.Contains(shipment.Status))
-            throw new InvalidOperationException("草稿出运单不能同步财务");
+            throw new BusinessRuleException("SHIPMENT_NOT_READY_FOR_FINANCE", "草稿出运单不能同步财务");
 
         await _expenseService.ValidateAllAsync(shipmentId);
         var expenses = await _db.ShipmentExpenses
@@ -39,7 +39,10 @@ public class ShipmentFinanceSyncService
         foreach (var expense in expenses)
             await SyncExpenseAsync(shipment, expense);
 
-        shipment.ExpenseTotal = FinanceBalanceService.Round2(expenses.Sum(x => x.Amount));
+        shipment.ExpenseTotal = RmbMoneyService.Round(expenses.Sum(x => x.ProviderCost));
+        shipment.CustomerChargeTotal = RmbMoneyService.Round(expenses.Sum(x => x.CustomerCharge));
+        shipment.LogisticsProfitTotal = RmbMoneyService.Round(expenses.Sum(x => x.ProfitAmount));
+        shipment.Currency = RmbMoneyService.Currency;
         shipment.FinanceSyncStatus = "synced";
         shipment.FinanceSyncMessage = null;
         shipment.FinanceSyncedAt = DateTime.Now;
@@ -51,21 +54,23 @@ public class ShipmentFinanceSyncService
     {
         var finance = await FindCurrentFinanceAsync(expense);
 
-        if (finance != null && finance.SupplierId != expense.SupplierId)
+        if (finance is not null && finance.LogisticsProviderId != expense.LogisticsProviderId)
         {
-            await CloseForSupplierChangeAsync(finance);
+            await CloseForProviderChangeAsync(finance);
             expense.FinanceRecordId = null;
             finance = null;
         }
 
-        if (finance == null)
+        if (finance is null)
         {
-            if (expense.Amount <= 0m)
+            if (expense.ProviderCost <= 0m)
             {
                 expense.FinanceStatus = "not_generated";
                 expense.UpdatedAt = DateTime.Now;
                 return;
             }
+            if (!expense.LogisticsProviderId.HasValue)
+                throw new BusinessRuleException("LOGISTICS_PROVIDER_REQUIRED", "物流费用缺少物流服务商");
 
             finance = new FinanceRecord
             {
@@ -74,10 +79,12 @@ public class ShipmentFinanceSyncService
                 TargetType = "SHIPMENT_EXPENSE",
                 TargetId = expense.Id,
                 ShipmentExpenseId = expense.Id,
-                SourceKey = $"SHIPMENT_EXPENSE:{expense.Id}",
-                SupplierId = expense.SupplierId,
-                Currency = shipment.Currency,
-                Amount = expense.Amount,
+                SourceKey = $"shipment:{shipment.Id}:expense:{expense.Id}:provider",
+                SupplierId = null,
+                LogisticsProviderId = expense.LogisticsProviderId,
+                CounterpartyType = "logistics_provider",
+                Currency = RmbMoneyService.Currency,
+                Amount = expense.ProviderCost,
                 PaidAmount = 0m,
                 PrepaymentAppliedAmount = 0m,
                 OverpaymentTransferredAmount = 0m,
@@ -92,30 +99,27 @@ public class ShipmentFinanceSyncService
             expense.FinanceRecordId = finance.Id;
         }
 
-        finance.SupplierId = expense.SupplierId;
-        finance.Currency = shipment.Currency;
+        finance.SupplierId = null;
+        finance.LogisticsProviderId = expense.LogisticsProviderId;
+        finance.CounterpartyType = "logistics_provider";
+        finance.Currency = RmbMoneyService.Currency;
         finance.TargetId = expense.Id;
         finance.ShipmentExpenseId = expense.Id;
-        finance.SourceKey = $"SHIPMENT_EXPENSE:{expense.Id}";
+        finance.SourceKey = $"shipment:{shipment.Id}:expense:{expense.Id}:provider";
         finance.Remark = $"出运单 {shipment.No} / {expense.ExpenseName}";
         finance.RecordDate ??= shipment.Etd ?? DateTime.Today;
-        finance.Amount = FinanceBalanceService.Round2(expense.Amount);
+        finance.Amount = RmbMoneyService.Round(expense.ProviderCost);
 
-        var creditToKeep = Math.Max(0m, FinanceBalanceService.Round2(finance.Amount - finance.PaidAmount));
-        await _prepaymentService.ReleaseApplicationsAsync(finance, creditToKeep);
-
-        var desiredCashTransfer = Math.Max(0m, FinanceBalanceService.Round2(finance.PaidAmount - finance.Amount));
-        await _prepaymentService.UpsertOverpaymentAsync(finance, desiredCashTransfer);
-
-        FinanceBalanceService.RefreshStatus(finance);
-        if (FinanceBalanceService.Outstanding(finance) > 0m)
-            await _prepaymentService.ApplyAvailableAsync(finance);
-
+        // Old product-supplier prepayment applications are released during migration.
+        if (finance.PrepaymentAppliedAmount > 0m)
+            await _prepaymentService.ReleaseApplicationsAsync(finance, 0m);
+        finance.OverpaymentTransferredAmount = 0m;
         FinanceBalanceService.RefreshStatus(finance);
         finance.UpdatedAt = DateTime.Now;
         expense.FinanceRecordId = finance.Id;
         expense.FinanceStatus = finance.Status;
-        expense.Currency = shipment.Currency;
+        expense.Amount = expense.ProviderCost;
+        expense.Currency = RmbMoneyService.Currency;
         expense.UpdatedAt = DateTime.Now;
         await _db.SaveChangesAsync();
     }
@@ -125,18 +129,18 @@ public class ShipmentFinanceSyncService
         if (expense.FinanceRecordId.HasValue)
         {
             var byId = await _db.FinanceRecords.FindAsync(expense.FinanceRecordId.Value);
-            if (byId != null) return byId;
+            if (byId is not null) return byId;
         }
 
         return await _db.FinanceRecords.FirstOrDefaultAsync(x =>
             x.RecordType == "payable" && x.ShipmentExpenseId == expense.Id);
     }
 
-    private async Task CloseForSupplierChangeAsync(FinanceRecord finance)
+    private async Task CloseForProviderChangeAsync(FinanceRecord finance)
     {
-        await _prepaymentService.ReleaseApplicationsAsync(finance, 0m);
+        if (finance.PrepaymentAppliedAmount > 0m)
+            await _prepaymentService.ReleaseApplicationsAsync(finance, 0m);
         finance.Amount = 0m;
-        await _prepaymentService.UpsertOverpaymentAsync(finance, finance.PaidAmount);
         finance.ShipmentExpenseId = null;
         finance.SourceKey = $"{finance.SourceKey}:HISTORY:{finance.Id}";
         FinanceBalanceService.RefreshStatus(finance);
