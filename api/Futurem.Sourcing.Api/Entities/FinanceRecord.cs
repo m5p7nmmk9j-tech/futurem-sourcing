@@ -10,6 +10,8 @@ public class FinanceRecord : BaseEntity
     public long TargetId { get; set; }
     public long? CustomerId { get; set; }
     public long? SupplierId { get; set; }
+    public long? LogisticsProviderId { get; set; }
+    public string CounterpartyType { get; set; } = string.Empty;
     public string Currency { get; set; } = "RMB";
 
     [Column(TypeName = "decimal(18,2)")]
