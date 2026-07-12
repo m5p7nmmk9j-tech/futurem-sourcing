@@ -41,9 +41,11 @@ builder.Services.AddScoped<OrderProductIndexUpgradeService>();
 builder.Services.AddScoped<SummaryReservationSchemaUpgradeService>();
 builder.Services.AddScoped<DeliveryNoticeSchemaUpgradeService>();
 builder.Services.AddScoped<QcConfirmationSchemaUpgradeService>();
+builder.Services.AddScoped<InventorySchemaUpgradeService>();
 builder.Services.AddScoped<DeliveryNoticeService>();
 builder.Services.AddScoped<QcConfirmationService>();
 builder.Services.AddScoped<SummaryReservationService>();
+builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<ShipmentMeasurementService>();
 builder.Services.AddScoped<ShipmentExpenseService>();
 builder.Services.AddScoped<SupplierPrepaymentService>();
@@ -104,6 +106,8 @@ using (var scope = app.Services.CreateScope())
     await deliveryNoticeUpgrade.UpgradeAsync();
     var qcConfirmationUpgrade = scope.ServiceProvider.GetRequiredService<QcConfirmationSchemaUpgradeService>();
     await qcConfirmationUpgrade.UpgradeAsync();
+    var inventoryUpgrade = scope.ServiceProvider.GetRequiredService<InventorySchemaUpgradeService>();
+    await inventoryUpgrade.UpgradeAsync();
 }
 
 app.UseMiddleware<BusinessRuleExceptionMiddleware>();
