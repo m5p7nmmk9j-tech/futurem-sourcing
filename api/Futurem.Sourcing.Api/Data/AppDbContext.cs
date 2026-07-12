@@ -27,6 +27,7 @@ public class AppDbContext : DbContext
     public DbSet<WarehouseLocation> WarehouseLocations => Set<WarehouseLocation>();
     public DbSet<InventoryLot> InventoryLots => Set<InventoryLot>();
     public DbSet<InventoryTransaction> InventoryTransactions => Set<InventoryTransaction>();
+    public DbSet<InventoryReservation> InventoryReservations => Set<InventoryReservation>();
     public DbSet<ReceivingOrder> ReceivingOrders => Set<ReceivingOrder>();
     public DbSet<QcOrder> QcOrders => Set<QcOrder>();
     public DbSet<QcOrderLine> QcOrderLines => Set<QcOrderLine>();
@@ -81,6 +82,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<WarehouseLocation>().ToTable("warehouse_locations");
         modelBuilder.Entity<InventoryLot>().ToTable("inventory_lots");
         modelBuilder.Entity<InventoryTransaction>().ToTable("inventory_transactions");
+        modelBuilder.Entity<InventoryReservation>().ToTable("inventory_reservations");
         modelBuilder.Entity<ReceivingOrder>().ToTable("receiving_orders");
         modelBuilder.Entity<QcOrder>().ToTable("qc_orders");
         modelBuilder.Entity<QcOrderLine>().ToTable("qc_order_lines");
@@ -132,6 +134,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<InventoryLot>().HasIndex(x => new { x.CustomerId, x.WarehouseId, x.Status });
         modelBuilder.Entity<InventoryLot>().HasIndex(x => new { x.OrderProductId, x.WarehouseId });
         modelBuilder.Entity<InventoryTransaction>().HasIndex(x => new { x.InventoryLotId, x.CreatedAt });
+        modelBuilder.Entity<InventoryReservation>().HasIndex(x => new { x.ContainerLoadId, x.Status });
+        modelBuilder.Entity<InventoryReservation>().HasIndex(x => new { x.InventoryLotId, x.Status, x.ExpiresAt });
         modelBuilder.Entity<ReceivingOrder>().HasIndex(x => x.DeliveryNoticeId);
         modelBuilder.Entity<DocumentLine>().HasIndex(x => x.DeliveryNoticeLineId);
         modelBuilder.Entity<QcOrder>().HasIndex(x => x.ReceivingOrderId).IsUnique();
