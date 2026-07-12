@@ -7,6 +7,11 @@ public class Shipment : BaseEntity
     public string No { get; set; } = string.Empty;
     public long? ContainerLoadId { get; set; }
     public long? SummaryOrderId { get; set; }
+    public long? CustomerId { get; set; }
+    public long? WarehouseId { get; set; }
+    public string? ContainerType { get; set; }
+    public string? ContainerNo { get; set; }
+    public string? SealNo { get; set; }
     public string ShipmentMode { get; set; } = "SEA";
     public string? Carrier { get; set; }
     public string? VesselVoyage { get; set; }
