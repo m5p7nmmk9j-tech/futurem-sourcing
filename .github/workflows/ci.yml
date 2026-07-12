@@ -118,6 +118,7 @@ jobs:
             SHOW TABLES LIKE 'inventory_reservations';
             SHOW TABLES LIKE 'container_load_sources';
             SHOW TABLES LIKE 'finance_record_lines';
+            SHOW TABLES LIKE 'logistics_providers';
             SHOW COLUMNS FROM container_loads LIKE 'customer_id';
             SHOW COLUMNS FROM container_loads LIKE 'warehouse_id';
             SHOW COLUMNS FROM container_loads LIKE 'inventory_lock_expires_at';
@@ -125,7 +126,15 @@ jobs:
             SHOW COLUMNS FROM shipments LIKE 'warehouse_id';
             SHOW COLUMNS FROM shipments LIKE 'container_no';
             SHOW COLUMNS FROM shipments LIKE 'expense_total';
+            SHOW COLUMNS FROM shipments LIKE 'customer_charge_total';
+            SHOW COLUMNS FROM shipments LIKE 'logistics_profit_total';
+            SHOW COLUMNS FROM shipment_expenses LIKE 'logistics_provider_id';
+            SHOW COLUMNS FROM shipment_expenses LIKE 'provider_cost';
+            SHOW COLUMNS FROM shipment_expenses LIKE 'customer_charge';
+            SHOW COLUMNS FROM shipment_expenses LIKE 'profit_amount';
             SHOW COLUMNS FROM finance_records LIKE 'shipment_expense_id';
+            SHOW COLUMNS FROM finance_records LIKE 'logistics_provider_id';
+            SHOW COLUMNS FROM finance_records LIKE 'counterparty_type';
             SHOW INDEX FROM shipments WHERE Key_name = 'ux_shipment_container_load';
           "
       - name: Show service status
